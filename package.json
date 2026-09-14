@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22.0.0" },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -17,26 +19,28 @@
     "check": "npm run lint && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
-    "next": "16.3.5",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
     "lucide-react": "latest",
+    "next": "16.3.5",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "server-only": "^0.0.1",
     "zod": "latest"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@playwright/test": "latest",
     "@tailwindcss/postcss": "^4.1.0",
-    "tailwindcss": "^4.1.0",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "typescript": "^5.9.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
-    "vitest": "latest",
-    "@playwright/test": "latest",
-    "tsx": "latest"
+    "prettier": "^3.9.6",
+    "tailwindcss": "^4.1.0",
+    "tsx": "latest",
+    "typescript": "^5.9.0",
+    "vitest": "latest"
   }
 }
