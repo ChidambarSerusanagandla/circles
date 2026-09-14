@@ -15,8 +15,9 @@
     "test": "vitest run --configLoader=native --pool=threads",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "seed": "tsx --env-file=.env.local scripts/seed.ts",
-    "check": "npm run lint && npm run typecheck && npm test && npm run build"
+    "seed": "node --env-file=.env.local --import tsx scripts/seed.ts",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build",
+    "seed:check": "node --import tsx scripts/seed.ts --dry-run"
   },
   "dependencies": {
     "@supabase/ssr": "latest",
