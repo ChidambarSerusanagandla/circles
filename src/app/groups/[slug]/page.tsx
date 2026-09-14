@@ -1,0 +1,10 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ArrowLeft, LockKeyhole, MessageCircle } from "lucide-react";
+import { demoGroups } from "@/lib/seed-data";
+import { AvatarStack } from "@/components/avatar";
+import { Message } from "@/components/message";
+export default async function GroupPage({params}: {params: Promise<{slug: string}>}) {
+  const {slug} = await params; const group = demoGroups.find(g => g.slug === slug); if (!group) notFound();
+  return <div className="page group-page"><Link href="/" className="back-link"><ArrowLeft size={16}/>Back to Discover</Link><div className="group-layout"><section><div className="group-heading"><span className={`category category-${group.category.toLowerCase()}`}>{group.category}</span><h1>{group.name}</h1><p>{group.description}</p><div className="card-people"><AvatarStack people={group.admins}/><span>{group.admins.length} voices</span><span>·</span><span>{group.member_count} members · Demo data</span></div></div><div className="conversation-panel"><div className="conversation-date">THURSDAY, SEPTEMBER 10 <span>All times UTC</span></div>{group.messages.map(message => <Message key={message.id} message={message}/>)}</div><div className="reading-note"><LockKeyhole size={15}/>Only creators post here. Everyone gets a front-row seat.</div></section><aside className="group-sidebar"><div className="side-card"><span className="eyebrow">MAKE YOURSELF AT HOME</span><h2>Your seat is waiting.</h2><p>Join this circle to react, keep up, and send a question to the people behind the conversation.</p><Link href="/profile" className="button primary">{group.access_type === "premium" ? `Join · ${group.monthly_price?.toFixed(2)} / month (Demo)` : "Join this circle"}</Link><span className="fine-print">{group.access_type === "premium" ? "Demo only. No payment is collected." : "Free to join. Always welcome to watch."}</span></div><div className="side-card question-teaser"><MessageCircle size={22}/><h3>Curiosity looks good on you.</h3><p>Have a question for the creators? Join the circle and ask away.</p></div></aside></div></div>;
+}
