@@ -64,31 +64,40 @@ The dashboard demonstrates generated results, visibly labeled as simulated. They
 
 ## Likely interview follow-up questions
 
-**Why browser identity instead of user identity?**  
+**Why browser identity instead of user identity?**
+
 Discovery starts before signup. Keeping the browser assignment preserves the treatment through login. Cross-device reconciliation is not implemented; this is not person-level measurement.
 
-**How are concurrent joins or answers handled?**  
+**How are concurrent joins or answers handled?**
+
 Membership has a composite unique key. Answering runs in a PostgreSQL function that locks the pending question, verifies that group's admin, inserts an answer/public message, and changes status atomically. A repeat review is rejected.
 
-**Can someone impersonate a creator?**  
+**Can someone impersonate a creator?**
+
 Server identity verification and RLS both check access. Posting and answering require administration of that specific group. Global experiments require a separate growth-admin role. Role-based PostgreSQL tests exercise these boundaries.
 
-**How do percentage-point and relative lift differ?**  
+**How do percentage-point and relative lift differ?**
+
 In the simulation, 14.7% minus 11.2% is 3.5 percentage points. Dividing the difference by 11.2% gives 31.25% relative lift. Neither is a measured product improvement here.
 
-**Is the experiment statistically significant?**  
+**Is the experiment statistically significant?**
+
 No significance test is implemented. The dashboard presents descriptive rates and lift with a directional-result notice. Generated data cannot validate the hypothesis.
 
-**What happens when analytics fails?**  
+**What happens when analytics fails?**
+
 The product action succeeds independently. Events can be lost because there is no durable retry queue. Signed cookies do not make browser reading events bot-proof, and the per-visitor cap is only lightweight abuse control.
 
-**What was actually validated?**  
+**What was actually validated?**
+
 Lint, TypeScript, 54 tests, a constrained production build, SQL seed/funnel parity, HTTP A/B rendering, and browser reviewer flows. The Playwright CLI was blocked by local worker-process restrictions; its 12 cases are prepared for CI. Hosted Supabase Auth, email confirmation and Vercel have not been validated. See [VERIFICATION.md](VERIFICATION.md).
 
-**Is it deployed or used by paying customers?**  
+**Is it deployed or used by paying customers?**
+
 No. It is a local working prototype with Vercel instructions. No production adoption, revenue, real experiment traffic or payment collection is claimed.
 
-**What would you do next?**  
+**What would you do next?**
+
 Validate the connected deployment, observe the core loop with real people, and add retention measurement. Add recommendations, real-time updates, notifications or billing only when product needs justify them.
 
 ## Development evidence
