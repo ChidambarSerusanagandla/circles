@@ -29,3 +29,13 @@ This document is updated as features and verification are completed. Seed data i
 - Built SQL reports that count distinct browsers and require a same-group outcome within seven days of a preview. Creator joins also require an intervening open.
 - Historical simulation and measured events have separate data flags and reports; no simulated result is presented as real traffic.
 - Phase gate passed: lint, TypeScript, 41 tests, and the constrained production build. Hosted Supabase and Vercel have not been connected or deployed.
+
+### Phase 4 — conversation preview experiment
+
+- Wired server-rendered four/eight-message previews to a persistent, versioned browser assignment and database uniqueness constraint.
+- Review caught treatment-dependent impression eligibility. Both arms now observe the same fixed 64px area for one second, rather than a fraction of their differently sized previews.
+- Added signed visitor cookies in connected mode, strict event payload validation, deduplication, and receipt-time timestamps before asynchronous ingestion work.
+- Stopping enrollment retains existing assignment attribution for later conversions; new preview exposures stop. Assignment outages serve baseline without claiming a new exposure.
+- Added the experiment dashboard with separate simulated history, browser-local activity and measured traffic, explicit conversion definitions, absolute/relative lift and no statistical-significance claim.
+- Corrected JavaScript/SQL attribution parity: the experiment report is scoped to this experiment; creator funnels remain independent of experiment tags.
+- Phase gate passed: lint, TypeScript, 45 tests and production build. Sample rates are 11.2% vs 14.7% (+3.5 percentage points, +31.25% relative); these numbers are simulated, not a learning from real users.

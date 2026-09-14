@@ -6,6 +6,7 @@ import { browserEventInput } from "@/lib/analytics/events";
 import { trackServerEvent } from "@/lib/analytics/server";
 import { analyticsDatabase } from "@/lib/supabase/admin";
 export async function POST(request:Request) {
+ const receivedAt=new Date().toISOString();
  if(request.headers.get("origin")!==new URL(request.url).origin)return NextResponse.json({error:"Origin not allowed"},{status:403});
  if(DEMO_MODE)return new Response(null,{status:204});
  try {
@@ -15,7 +16,8 @@ export async function POST(request:Request) {
   const event=parsed.data;const assignment=await getAssignment();const db=analyticsDatabase();
   const {count,error}=await db.from("analytics_events").select("id",{count:"exact",head:true}).eq("anonymous_session_id",assignment.visitorId).gte("created_at",new Date(Date.now()-60000).toISOString());
   if(error)throw error;if((count||0)>=120)return new Response(null,{status:429});
-  const user=await getUser();await trackServerEvent(event.name,event.groupId||null,user?.id||null,`${assignment.visitorId}:${event.id}`);
+  const user=await getUser();await trackServerEvent(event.name,event.groupId||null,user?.id||null,`${assignment.visitorId}:${event.id}`,receivedAt);
   return new Response(null,{status:204});
  } catch {return NextResponse.json({error:"Analytics temporarily unavailable"},{status:503});}
 }
+

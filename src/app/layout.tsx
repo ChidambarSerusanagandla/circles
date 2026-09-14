@@ -3,6 +3,7 @@ import { Navigation } from "@/components/navigation";
 import "./globals.css";
 import "./participation.css";
 import "./dashboard.css";
+import "./experiments.css";
 import { getAssignment } from "@/lib/experiments/server";
 import { AnalyticsProvider } from "@/components/analytics-provider";
 import { DemoProvider } from "@/components/demo-provider";
