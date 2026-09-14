@@ -6,6 +6,7 @@ import { DEMO_MODE } from "@/lib/config";
 import { answerInput, groupInput, membershipStatus, messageInput, questionInput, reactionInput, requireIdentity, uuidInput } from "@/lib/rules";
 import type { ActionResult } from "@/lib/types";
 import { z } from "zod";
+import { trackServerEvent } from "@/lib/analytics/server";
 async function context() { if (DEMO_MODE) throw new Error("Use the browser demo controls in demo mode."); const user=await getUser(); requireIdentity(user?.id || null); return {db:await supabase(),user:user!}; }
 function failure(error: unknown): ActionResult {return {ok:false,message:error instanceof z.ZodError ? error.issues[0].message : error instanceof Error ? error.message : "Something went wrong. Please try again."};}
 export async function joinGroup(groupId: string): Promise<ActionResult> {
@@ -15,6 +16,7 @@ export async function joinGroup(groupId: string): Promise<ActionResult> {
     const {error}=await db.from("group_memberships").insert({group_id:groupId,profile_id:user.id,status:membershipStatus(group.access_type as "free"|"premium")});
     if(error?.code === "23505") return {ok:true,message:"You’re already a member."};
     if(error) return {ok:false,message:"Could not join. Please try again."};
+    await trackServerEvent("group_joined",groupId,user.id,`${user.id}:${groupId}`);
     revalidatePath("/", "layout"); return {ok:true,message:group.access_type === "premium" ? "You joined the premium demo. No payment was taken." : "You’re in. Make yourself at home."};
   } catch(error) {return failure(error);}
 }
@@ -22,13 +24,15 @@ export async function reactToMessage(messageId: string, reaction: string, remove
   try { uuidInput.parse(messageId); reactionInput.parse(reaction); const {db,user}=await context();
     const {error}=remove ? await db.from("message_reactions").delete().eq("message_id",messageId).eq("profile_id",user.id).eq("reaction",reaction) : await db.from("message_reactions").insert({message_id:messageId,profile_id:user.id,reaction});
     if(error && error.code !== "23505") return {ok:false,message:"Could not save your reaction."};
+    if(!remove&&!error){const {data:message}=await db.from("messages").select("group_id").eq("id",messageId).single();if(message)await trackServerEvent("reaction_added",message.group_id,user.id,crypto.randomUUID());}
     revalidatePath("/groups", "layout"); return {ok:true,message:remove ? "Reaction removed." : "Reaction added."};
   } catch(error) {return failure(error);}
 }
 export async function submitQuestion(groupId: string, content: string): Promise<ActionResult> {
   try { uuidInput.parse(groupId); content=questionInput.parse(content); const {db,user}=await context();
-    const {error}=await db.from("questions").insert({group_id:groupId,author_id:user.id,content});
+    const {data:question,error}=await db.from("questions").insert({group_id:groupId,author_id:user.id,content}).select("id").single();
     if(error) return {ok:false,message:"Could not send your question. Join this circle first, then try again."};
+    await trackServerEvent("question_submitted",groupId,user.id,question.id);
     revalidatePath("/", "layout"); return {ok:true,message:"Question sent. A creator can answer it in the conversation."};
   } catch(error) {return failure(error);}
 }

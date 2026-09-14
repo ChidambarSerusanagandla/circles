@@ -20,3 +20,12 @@ This document is updated as features and verification are completed. Seed data i
 - A schema review also found that combining the maximum question and answer could exceed the message limit. Aligned the answer constraint with the 1,400-character application limit.
 - 26 automated tests pass, including 16 tests that execute the migration and RLS under anonymous/authenticated roles in PGlite (embedded PostgreSQL). This validates SQL behavior, not the externally hosted Supabase Auth service.
 - Local restrictions reject spawned processes. Verified TypeScript separately and used Next.js worker threads, its TypeScript API path, and a webpack build via the documented `CIRCLES_CONSTRAINED_BUILD` option. The normal Vercel build remains `next build`.
+
+### Phase 3 — creator studio and first-party measurement
+
+- Added creator group creation, message publishing, question answering/skipping, and a compact engagement dashboard.
+- Added server-derived analytics identity and experiment assignment; browser ingestion accepts only reading events. Successful joins, reactions and questions log on the server. Analytics failures do not roll back product actions.
+- Restricted global experiment results to an explicit internal growth-admin role. Ordinary creators can query only their own group metrics.
+- Built SQL reports that count distinct browsers and require a same-group outcome within seven days of a preview. Creator joins also require an intervening open.
+- Historical simulation and measured events have separate data flags and reports; no simulated result is presented as real traffic.
+- Phase gate passed: lint, TypeScript, 41 tests, and the constrained production build. Hosted Supabase and Vercel have not been connected or deployed.

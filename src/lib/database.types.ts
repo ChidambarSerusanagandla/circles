@@ -27,6 +27,7 @@ export type Database = { public: {
     is_growth_admin: { Args: Record<string, never>; Returns: boolean };
     group_counts: {Args: Record<string, never>; Returns: {group_id: string; member_count: number}[]};
     reaction_counts: {Args: {message_ids: string[]}; Returns: {message_id: string; reaction: string; total: number}[]};
+    preview_messages: {Args: {group_ids: string[]}; Returns: MessageRow[]};
     create_group: {Args: {group_name: string; group_slug: string; group_description: string; group_category: string}; Returns: string};
     answer_question: {Args: {target: string; answer: string}; Returns: undefined};
     skip_question: {Args: {target: string}; Returns: undefined};
