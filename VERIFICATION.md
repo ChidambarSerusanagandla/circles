@@ -68,3 +68,31 @@ Executed preparation checks:
 - Independent read-only authorization review: all 15 application tables enable RLS; invitation recipient checks, Inbox participant checks and independent Growth guards are present. Hosted enforcement remains pending.
 
 The full suite, lint, TypeScript, production build and HTTP checks above were **not rerun during this preparation pass**. Playwright remains locally blocked by `spawn EPERM`; no successful E2E or GitHub Actions run is claimed. The next step is the user's Supabase project creation, followed by the ordered setup and hosted verification in the runbook.
+
+## Authentication logging security fix — September 15, 2026
+
+The reported `authenticate(...)` payload was produced by Next.js development Server Function tracing, not a console statement inside `src/app/auth/actions.ts`. Installed Next.js 16.3.5 defaults `logging.serverFunctions` to true. Its action handler captures `boundActionArguments`, and the development request logger formats them alongside the function name and source file. An authentication argument therefore includes the plaintext password.
+
+`next.config.ts` now sets `logging.serverFunctions=false`, preventing that argument capture/logging, and `browserToTerminal=false`, preventing browser console forwarding. Ordinary HTTP status/timing logs remain available. Every Supabase client explicitly sets `auth.debug=false`. An ESLint rule rejects console logging in auth/session/client modules, the Profile component and proxy. Authentication inputs, validation, Supabase calls, cookie handling and returned user messages are unchanged; the action file itself required no edit.
+
+Checks actually executed after the fix:
+
+| Check | Result |
+| --- | --- |
+| ESLint | Passed, exit 0 |
+| TypeScript | Passed, exit 0 |
+| Full unit/PostgreSQL suite | **201 tests passed in 17 files**, exit 0 |
+| New auth regression cases | 10 cases covering sign-in, signup confirmation/session outcomes, invalid input, returned/thrown sensitive errors and sign-out without logging |
+| Production build | Passed, exit 0; Next.js 16.3.5, webpack and the existing constrained-build setting |
+| Built configuration | Both Server Function tracing and browser-to-terminal forwarding are false |
+| Connected development HTTP sign-in | Passed: invalid synthetic password rejected; real seeded Alex account signed in through the Next server action; session cookie received; authenticated Profile survived reload |
+| Fresh server log scan | Passed: no synthetic password marker, configured credential/secret values, returned cookie values, access token or refresh token; no `authenticate(...)` argument trace |
+| Browser production bundle scan | No configured Supabase server key, analytics signing secret, or seed-password values found |
+
+The runtime verification invoked the actual development server action over HTTP. Calling the exported function directly would not exercise the framework logger. A generated invalid password marker was checked first, before sending the private seed credential. Credentials and response cookies stayed in the local checker's memory and were never printed. Both captured stdout/stderr and Next's fresh development log were inspected; ordinary GET/POST `/profile` status lines remained.
+
+The normal `next dev --webpack` launcher hit the existing child-process `spawn EPERM` restriction. Localhost was restarted using the installed Next development server directly with `NODE_ENV=development`, `__NEXT_DEV_SERVER=1`, and the existing worker-thread build workaround. This preserves the development action-logging path under test. The direct development server remains on port 3000. No deployment occurred.
+
+This establishes connected password sign-in and session persistence on localhost against the configured Supabase project. It does not establish email confirmation, all hosted RLS flows, a Vercel deployment, or Playwright success. Playwright was not rerun in this pass.
+
+Changed files: `next.config.ts`, `eslint.config.mjs`, `src/lib/supabase/server.ts`, `src/lib/supabase/admin.ts`, `src/proxy.ts`, `scripts/seed.ts`, `tests/unit/auth-logging.test.ts`, and this verification record. Next may regenerate the uncommitted `next-env.d.ts` development type paths; that generated change is excluded from the security commit.

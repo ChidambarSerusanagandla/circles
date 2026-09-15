@@ -26,7 +26,7 @@ if (process.argv.includes("--dry-run")) {
       "Set a separate SEED_INTERNAL_PASSWORD of at least 16 characters for the private project-owner account.",
     );
   const db = createClient<Database>(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
+    auth: { persistSession: false, autoRefreshToken: false, debug: false },
   });
   function check(error: { message: string } | null) {
     if (error) throw new Error(error.message);

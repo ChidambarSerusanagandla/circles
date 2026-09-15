@@ -9,6 +9,6 @@ export function analyticsDatabase() {
       "Server analytics requires Supabase URL and service role key.",
     );
   return createClient<Database>(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
+    auth: { persistSession: false, autoRefreshToken: false, debug: false },
   });
 }
