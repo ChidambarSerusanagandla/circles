@@ -53,3 +53,18 @@ Screenshots were saved outside the Git repository in `../screenshots/`: Discover
 - Vercel configuration/deployment, domain setup and real traffic. **No deployment was attempted.**
 
 Demo content, including messages and invitations, is inspectable shared browser storage. It is suitable for fictional review content, not secure private communication. Connected-mode privacy uses Supabase Auth and PostgreSQL RLS. No production adoption, paid usage or real experiment lift is claimed.
+
+## Deployment preparation pass — September 14, 2026
+
+Added `DEPLOYMENT.md`, linked it from the README, documented current Supabase secret-key compatibility in the environment template, and pinned the manifest/lockfile Node engine to `22.x`. No application code, schema, dependency version, navigation or product behavior changed. No account, remote, hosted database connection or deployment was created.
+
+Executed preparation checks:
+
+- Manifest/lockfile engine and dependency consistency: passed on Node v22.19.0.
+- Runbook contains all seven repository migration filenames: passed.
+- `git diff --check`: passed.
+- Installed Supabase SDK mock transport: two requests (table read and Auth admin list) correctly used a synthetic `sb_secret_...` API key; passed without network calls. This is not a hosted-key test.
+- Existing client bundle scan: no configured demo secret values were present. The hosted service key and analytics signing secret are not configured, so their actual deployed-value checks remain pending. Source inspection found the privileged client behind a server-only boundary.
+- Independent read-only authorization review: all 15 application tables enable RLS; invitation recipient checks, Inbox participant checks and independent Growth guards are present. Hosted enforcement remains pending.
+
+The full suite, lint, TypeScript, production build and HTTP checks above were **not rerun during this preparation pass**. Playwright remains locally blocked by `spawn EPERM`; no successful E2E or GitHub Actions run is claimed. The next step is the user's Supabase project creation, followed by the ordered setup and hosted verification in the runbook.

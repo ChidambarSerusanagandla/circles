@@ -306,6 +306,8 @@ Generate a signing secret locally with `node -e "console.log(require('crypto').r
 
 **Vercel-ready, not deployed.**
 
+For deployment through your own accounts, follow [DEPLOYMENT.md](DEPLOYMENT.md): the complete 001–007 migration order, seed process, five runtime variables, Auth URLs/email delivery, GitHub import, and hosted role/privacy checklist. The current handoff stops after you create the Supabase project. Node is pinned to `22.x` to match the tested runtime and avoid Vercel selecting a newer major from an open-ended range.
+
 1. Create a GitHub repository and push this repository. No GitHub remote or upload is created automatically.
 2. In Vercel, import the GitHub repository. If you publish this folder as the repo root, leave Root Directory unset; if you publish the parent workspace, select `outputs/circles`.
 3. Select the **Next.js** framework preset, Node.js **22.x**, install command `npm ci`, and build command `npm run build`. Leave the output setting at the Next.js default.
