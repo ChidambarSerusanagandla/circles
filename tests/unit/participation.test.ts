@@ -8,7 +8,7 @@ import {
   reactDemo,
 } from "../../src/lib/demo";
 import { demoGroups, profiles } from "../../src/lib/seed-data";
-import { groupInput, membershipStatus } from "../../src/lib/rules";
+import { groupInput } from "../../src/lib/rules";
 const circle = demoGroups[0];
 const reader = { ...initialDemo, user: profiles[4] };
 const admin = { ...initialDemo, user: profiles[0] };
@@ -21,9 +21,19 @@ describe("participation rules", () => {
       `${reader.user.id}:${circle.id}`,
     ]);
   });
-  it("marks premium membership explicitly as a demo entitlement", () => {
-    expect(membershipStatus("premium")).toBe("premium_demo");
-    expect(membershipStatus("free")).toBe("active");
+  it("makes every seeded circle free and preserves joining for legacy metadata", () => {
+    expect(
+      demoGroups.every(
+        (g) => g.access_type === "free" && g.monthly_price === null,
+      ),
+    ).toBe(true);
+    expect(
+      joinDemo(reader, {
+        ...circle,
+        access_type: "premium",
+        monthly_price: 4.99,
+      }).memberships,
+    ).toContain(`${reader.user.id}:${circle.id}`);
   });
   it("toggles reactions without duplicates", () => {
     const reacted = reactDemo(reader, circle.messages[0].id, "❤️");

@@ -1,22 +1,15 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Compass,
-  UsersRound,
-  FlaskConical,
-  LayoutDashboard,
-  CircleUserRound,
-} from "lucide-react";
+import { Compass, UsersRound, CircleUserRound, Mail } from "lucide-react";
 const links = [
   { href: "/", label: "Discover", icon: Compass },
-  { href: "/my-groups", label: "My Groups", icon: UsersRound },
-  { href: "/experiments", label: "Experiments", icon: FlaskConical },
-  { href: "/admin", label: "Admin", icon: LayoutDashboard },
+  { href: "/groups", label: "Groups", icon: UsersRound },
+  { href: "/inbox", label: "Inbox", icon: Mail },
   { href: "/profile", label: "Profile", icon: CircleUserRound },
 ];
 export function Navigation() {
-  const pathname = usePathname();
+  const path = usePathname();
   return (
     <header className="header">
       <div className="header-inner">
@@ -27,25 +20,23 @@ export function Navigation() {
           circles<span className="brand-period">.</span>
         </Link>
         <nav className="nav" aria-label="Main navigation">
-          {links.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className={pathname === href ? "nav-link active" : "nav-link"}
-              aria-current={pathname === href ? "page" : undefined}
-            >
-              <Icon size={18} />
-              <span>{label}</span>
-            </Link>
-          ))}
+          {links.map(({ href, label, icon: Icon }) => {
+            const active =
+              path === href || (href === "/groups" && path === "/creator");
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={active ? "nav-link active" : "nav-link"}
+                aria-current={active ? "page" : undefined}
+              >
+                <Icon size={18} />
+                <span>{label}</span>
+              </Link>
+            );
+          })}
         </nav>
-        <Link
-          href="/profile"
-          className="header-profile"
-          aria-label="Open profile"
-        >
-          <CircleUserRound size={24} />
-        </Link>
+        <div className="header-spacer" aria-hidden="true" />
       </div>
     </header>
   );

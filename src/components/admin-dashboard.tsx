@@ -5,40 +5,51 @@ import Link from "next/link";
 import { ArrowUpRight, PenLine, Plus, ShieldCheck } from "lucide-react";
 import type { Group, Profile, Question } from "@/lib/types";
 import { categories } from "@/lib/seed-data";
-import { createGroup, moderateQuestion, postMessage } from "@/app/actions";
-import { createDemo, moderateDemo, postDemo } from "@/lib/demo";
 import {
-  creatorMetrics,
-  percent,
-  rate,
-  type CreatorMetrics,
-} from "@/lib/analytics/metrics";
+  createGroup,
+  moderateQuestion,
+  postMessage,
+  updateGroupSettings,
+} from "@/app/actions";
+import {
+  createDemo,
+  moderateDemo,
+  postDemo,
+  configureDemoGroup,
+  demoMemberCount,
+} from "@/lib/demo";
+import { creatorMetrics, type CreatorMetrics } from "@/lib/analytics/metrics";
 import { sampleEvents } from "@/lib/analytics/sample";
 import { useDemo, updateDemo } from "./demo-provider";
+import { applyDemoGroup } from "@/lib/creators/demo";
+import { CreatorTeam } from "./creator-team";
 const samples = sampleEvents();
 type Props = {
   groups: Group[];
   user: Profile | null;
   questions: Question[];
   metrics: Record<string, CreatorMetrics>;
+  initialCreating?: boolean;
 };
 export function AdminDashboard({
   groups: baseGroups,
   user: liveUser,
   questions: liveQuestions,
   metrics,
+  initialCreating = false,
 }: Props) {
   const { state, isDemo } = useDemo();
   const user = isDemo ? state.user : liveUser;
-  const groups = [...baseGroups, ...(isDemo ? state.groups : [])].filter((g) =>
-    g.admins.some((a) => a.id === user?.id),
-  );
+  const groups = [...baseGroups, ...(isDemo ? state.groups : [])]
+    .map((g) => (isDemo ? applyDemoGroup(state, g) : g))
+    .filter((g) => g.admins.some((a) => a.id === user?.id));
   const [selected, setSelected] = useState("");
   const [notice, setNotice] = useState("");
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState(initialCreating);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
-  const group = groups.find((g) => g.id === selected) || groups[0];
+  const group =
+    groups.find((g) => g.id === selected || g.slug === selected) || groups[0];
   if (!user)
     return (
       <div className="page empty">
@@ -49,7 +60,7 @@ export function AdminDashboard({
           readers.
         </p>
         <Link className="button primary" href="/profile">
-          Sign in{isDemo ? " or try creator mode" : ""}
+          Sign in
         </Link>
       </div>
     );
@@ -59,7 +70,7 @@ export function AdminDashboard({
   const waiting = questions.filter((q) => q.status === "pending");
   const stats = group
     ? isDemo
-      ? creatorMetrics(samples, group.id, true)
+      ? creatorMetrics([...samples, ...state.events], group.id, true)
       : metrics[group.id]
     : undefined;
   return (
@@ -94,10 +105,11 @@ export function AdminDashboard({
                   : await createGroup(fields);
                 setNotice(
                   result.ok
-                    ? "Circle created. Choose it below to publish its first message."
+                    ? "Circle created. Invite your creators below, then start the conversation."
                     : result.message,
                 );
                 if (result.ok) {
+                  setSelected(String(fields.slug));
                   form.reset();
                   setCreating(false);
                   router.refresh();
@@ -174,11 +186,12 @@ export function AdminDashboard({
               View conversation <ArrowUpRight size={16} />
             </Link>
           </div>
+          <CreatorTeam key={group.id} group={group} />
           <div className="section-heading">
             <h2>How your circle is doing</h2>
             <span className="demo-label">
               {isDemo
-                ? "Demo data · Simulated history"
+                ? "Demo data — shown for product demonstration only."
                 : "Measured events · All time"}
             </span>
           </div>
@@ -186,9 +199,11 @@ export function AdminDashboard({
             <>
               <div className="metrics-grid">
                 {[
-                  ["Preview views", stats.previews],
-                  ["Group opens", stats.opens],
-                  ["Joined", stats.joins],
+                  [
+                    "Members",
+                    group.member_count +
+                      (isDemo ? demoMemberCount(state, group.id) : 0),
+                  ],
                   ["Questions", stats.questions],
                   ["Reactions", stats.reactions],
                 ].map(([label, value]) => (
@@ -198,29 +213,7 @@ export function AdminDashboard({
                   </div>
                 ))}
               </div>
-              <div className="conversion-strip">
-                <span>
-                  Preview → Open{" "}
-                  <strong>{percent(rate(stats.opens, stats.previews))}</strong>
-                </span>
-                <span>
-                  Open → Join{" "}
-                  <strong>{percent(rate(stats.joins, stats.opens))}</strong>
-                </span>
-                <span className="muted">
-                  Unique visitors · 7-day ordered funnel
-                </span>
-              </div>
             </>
-          )}
-          {isDemo && (
-            <p className="metrics-footnote">
-              Historical metrics above are simulated. In this browser:{" "}
-              {state.messages.filter((m) => m.group_id === group.id).length}{" "}
-              creator messages added and{" "}
-              {questions.filter((q) => q.status !== "pending").length} questions
-              reviewed.
-            </p>
           )}
           <div className="studio-columns">
             <section className="surface">
@@ -309,6 +302,59 @@ export function AdminDashboard({
               </p>
             </section>
           </div>
+          <details className="surface group-settings">
+            <summary>Circle settings</summary>
+            <form
+              key={group.id}
+              onSubmit={(event) => {
+                event.preventDefault();
+                const fields = Object.fromEntries(
+                  new FormData(event.currentTarget),
+                );
+                startTransition(async () => {
+                  const result = isDemo
+                    ? updateDemo((s) => configureDemoGroup(s, group, fields))
+                    : await updateGroupSettings(group.id, fields);
+                  setNotice(
+                    result.ok ? "Circle settings saved." : result.message,
+                  );
+                  if (result.ok) router.refresh();
+                });
+              }}
+            >
+              <label>
+                Circle name
+                <input
+                  name="name"
+                  defaultValue={group.name}
+                  required
+                  minLength={3}
+                  maxLength={80}
+                />
+              </label>
+              <label>
+                Description
+                <textarea
+                  name="description"
+                  defaultValue={group.description}
+                  required
+                  minLength={10}
+                  maxLength={240}
+                />
+              </label>
+              <label>
+                Category
+                <select name="category" defaultValue={group.category}>
+                  {categories.map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+              </label>
+              <button className="button" disabled={pending}>
+                Save circle settings
+              </button>
+            </form>
+          </details>
         </>
       )}
     </div>

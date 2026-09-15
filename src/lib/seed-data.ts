@@ -12,14 +12,17 @@ export const profiles: Profile[] = [
   "Amara Okafor",
   "Ellie Park",
   "Sam Rivera",
-].map((display_name, i) => ({ id: uid(i + 1), display_name }));
+].map((display_name, i) => ({
+  id: uid(i + 1),
+  display_name,
+  handle: display_name.split(" ")[0].toLowerCase(),
+}));
 type Seed = {
   name: string;
   slug: string;
   description: string;
   category: Category;
   admins: number[];
-  premium?: boolean;
   lines: [number, string][];
 };
 const seeds: Seed[] = [
@@ -115,7 +118,6 @@ const seeds: Seed[] = [
     description: "Small wins and honest notes on building a career.",
     category: "Career",
     admins: [7, 4, 6],
-    premium: true,
     lines: [
       [7, "I finally asked the question I thought was too basic."],
       [4, "And?"],
@@ -164,8 +166,8 @@ export const demoGroups: Group[] = seeds.map((seed, i) => ({
   slug: seed.slug,
   description: seed.description,
   category: seed.category,
-  access_type: seed.premium ? "premium" : "free",
-  monthly_price: seed.premium ? 4.99 : null,
+  access_type: "free",
+  monthly_price: null,
   created_by: profiles[seed.admins[0]].id,
   admins: seed.admins.map((n) => profiles[n]),
   member_count: [124, 86, 213, 67, 48, 92][i],

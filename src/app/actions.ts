@@ -6,7 +6,7 @@ import { DEMO_MODE } from "@/lib/config";
 import {
   answerInput,
   groupInput,
-  membershipStatus,
+  groupSettingsInput,
   messageInput,
   questionInput,
   reactionInput,
@@ -33,24 +33,47 @@ function failure(error: unknown): ActionResult {
           : "Something went wrong. Please try again.",
   };
 }
+export async function updateGroupSettings(
+  groupId: string,
+  input: unknown,
+): Promise<ActionResult> {
+  try {
+    uuidInput.parse(groupId);
+    const fields = groupSettingsInput.parse(input);
+    const { db } = await context();
+    const { data, error } = await db
+      .from("groups")
+      .update(fields)
+      .eq("id", groupId)
+      .select("id")
+      .maybeSingle();
+    if (error || !data)
+      return {
+        ok: false,
+        message: "Only this circle’s creators can update its settings.",
+      };
+    revalidatePath("/", "layout");
+    return { ok: true, message: "Circle settings saved." };
+  } catch (error) {
+    return failure(error);
+  }
+}
 export async function joinGroup(groupId: string): Promise<ActionResult> {
   try {
     uuidInput.parse(groupId);
     const { db, user } = await context();
     const { data: group, error: readError } = await db
       .from("groups")
-      .select("access_type")
+      .select("id")
       .eq("id", groupId)
       .single();
     if (readError || !group)
       return { ok: false, message: "This circle could not be found." };
-    const { error } = await db
-      .from("group_memberships")
-      .insert({
-        group_id: groupId,
-        profile_id: user.id,
-        status: membershipStatus(group.access_type as "free" | "premium"),
-      });
+    const { error } = await db.from("group_memberships").insert({
+      group_id: groupId,
+      profile_id: user.id,
+      status: "active",
+    });
     if (error?.code === "23505")
       return { ok: true, message: "You’re already a member." };
     if (error)
@@ -64,10 +87,7 @@ export async function joinGroup(groupId: string): Promise<ActionResult> {
     revalidatePath("/", "layout");
     return {
       ok: true,
-      message:
-        group.access_type === "premium"
-          ? "You joined the premium demo. No payment was taken."
-          : "You’re in. Make yourself at home.",
+      message: "You’re in. Make yourself at home.",
     };
   } catch (error) {
     return failure(error);

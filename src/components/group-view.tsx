@@ -25,6 +25,7 @@ import { useDemo, updateDemo } from "./demo-provider";
 import { AvatarStack } from "./avatar";
 import { Message } from "./message";
 import { PageEvent, useAnalytics } from "./analytics-provider";
+import { applyDemoGroup } from "@/lib/creators/demo";
 type Props = {
   group: Group;
   user: Profile | null;
@@ -35,7 +36,7 @@ type Props = {
   page: number;
 };
 export function GroupView({
-  group,
+  group: baseGroup,
   user: liveUser,
   memberships,
   reactions,
@@ -45,6 +46,7 @@ export function GroupView({
 }: Props) {
   const track = useAnalytics();
   const { state, isDemo } = useDemo();
+  const group = isDemo ? applyDemoGroup(state, baseGroup) : baseGroup;
   const user = isDemo ? state.user : liveUser;
   const joined = isDemo
     ? hasDemoMembership(state, group.id)
@@ -136,13 +138,13 @@ export function GroupView({
               <AvatarStack people={group.admins} />
               <span>
                 {group.admins.length}{" "}
-                {group.admins.length === 1 ? "voice" : "voices"}
+                {group.admins.length === 1 ? "creator" : "creators"}
               </span>
               <span>·</span>
               <span>
                 {group.member_count +
                   (isDemo ? demoMemberCount(state, group.id) : 0)}{" "}
-                members{isDemo || group.is_demo ? " · Demo data" : ""}
+                members
               </span>
             </div>
           </div>
@@ -185,6 +187,11 @@ export function GroupView({
         </section>
         <aside className="group-sidebar">
           <div className="side-card">
+            {group.admins.some((a) => a.id === user?.id) && (
+              <Link className="text-button manage-circle" href="/creator">
+                Manage circle <ArrowLeft size={14} />
+              </Link>
+            )}
             <span className="eyebrow">MAKE YOURSELF AT HOME</span>
             <h2>
               {joined ? "You’re part of the circle." : "Your seat is waiting."}
@@ -212,9 +219,7 @@ export function GroupView({
                     if (result.ok && isDemo) track("group_joined", group.id);
                     setNotice(
                       result.ok
-                        ? group.access_type === "premium"
-                          ? "You joined the premium demo. No payment was taken."
-                          : "You’re in. Make yourself at home."
+                        ? "You’re in. Make yourself at home."
                         : result.message,
                     );
                     if (result.ok && !isDemo) router.refresh();
@@ -226,17 +231,13 @@ export function GroupView({
                     <Check size={17} />
                     Joined
                   </>
-                ) : group.access_type === "premium" ? (
-                  `Join · $${group.monthly_price?.toFixed(2)} / month`
                 ) : (
                   "Join this circle"
                 )}
               </button>
             )}
             <span className="fine-print">
-              {group.access_type === "premium"
-                ? "Demo membership. No payment is collected."
-                : "Free to join. Always welcome to watch."}
+              Free to join. Always welcome to watch.
             </span>
             {notice && (
               <p className="notice" role="status">

@@ -7,9 +7,12 @@ import {
   PREVIEW_EXPERIMENT_ID,
   variantFor,
   VISITOR_COOKIE,
+  assignmentForStatus,
   type Assignment,
+  type ExperimentStatus,
 } from "./assignment";
 import { readVisitor, visitorSecret } from "./visitor";
+import { demoExperimentStatus } from "../auth/demo-server";
 export const getAssignment = cache(async (): Promise<Assignment> => {
   const visitorId =
     readVisitor(
@@ -22,7 +25,14 @@ export const getAssignment = cache(async (): Promise<Assignment> => {
     experimentId: PREVIEW_EXPERIMENT_ID,
     active: true,
   };
-  if (DEMO_MODE) return fallback;
+  if (DEMO_MODE) {
+    const status = await demoExperimentStatus();
+    return assignmentForStatus(
+      fallback,
+      status,
+      status === "draft" ? null : fallback.variant,
+    );
+  }
   try {
     const db = analyticsDatabase();
     const { data: experiment, error: expError } = await db
@@ -31,21 +41,19 @@ export const getAssignment = cache(async (): Promise<Assignment> => {
       .eq("id", PREVIEW_EXPERIMENT_ID)
       .single();
     if (expError) throw expError;
-    const active = experiment.status === "running";
-    if (active) {
-      const { error } = await db
-        .from("experiment_assignments")
-        .upsert(
-          {
-            experiment_id: PREVIEW_EXPERIMENT_ID,
-            anonymous_session_id: visitorId,
-            variant: fallback.variant,
-          },
-          {
-            onConflict: "experiment_id,anonymous_session_id",
-            ignoreDuplicates: true,
-          },
-        );
+    const status = experiment.status as ExperimentStatus;
+    if (status === "running") {
+      const { error } = await db.from("experiment_assignments").upsert(
+        {
+          experiment_id: PREVIEW_EXPERIMENT_ID,
+          anonymous_session_id: visitorId,
+          variant: fallback.variant,
+        },
+        {
+          onConflict: "experiment_id,anonymous_session_id",
+          ignoreDuplicates: true,
+        },
+      );
       if (error) throw error;
     }
     const { data, error } = await db
@@ -57,16 +65,21 @@ export const getAssignment = cache(async (): Promise<Assignment> => {
     if (error) throw error;
     // Existing assignments keep their attribution after enrollment stops, so
     // their already-started seven-day conversion windows can mature.
-    return {
-      ...fallback,
-      active,
-      attributed: Boolean(data),
-      variant: data?.variant === "B" ? "B" : "A",
-    };
+    return assignmentForStatus(
+      fallback,
+      status,
+      data?.variant === "B" ? "B" : data?.variant === "A" ? "A" : null,
+    );
   } catch {
     console.warn(
       "Experiment unavailable; serving the baseline without new experimental exposure.",
     );
-    return { ...fallback, variant: "A", active: false, attributed: false };
+    return {
+      ...fallback,
+      variant: "A",
+      displayVariant: "A",
+      active: false,
+      attributed: false,
+    };
   }
 });

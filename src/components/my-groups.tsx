@@ -5,18 +5,25 @@ import type { Group, Profile } from "@/lib/types";
 import { hasDemoMembership } from "@/lib/demo";
 import { useDemo } from "./demo-provider";
 import { AvatarStack } from "./avatar";
+import { applyDemoGroup } from "@/lib/creators/demo";
+import type { InvitationView } from "@/lib/creators/types";
+import { CreatorInvitations } from "./creator-invitations";
 export function MyGroups({
   groups: baseGroups,
   user: liveUser,
   memberships,
+  invitations = [],
 }: {
   groups: Group[];
   user: Profile | null;
   memberships: string[];
+  invitations?: InvitationView[];
 }) {
   const { state, isDemo } = useDemo();
   const user = isDemo ? state.user : liveUser;
-  const groups = [...baseGroups, ...(isDemo ? state.groups : [])];
+  const groups = [...baseGroups, ...(isDemo ? state.groups : [])].map((g) =>
+    isDemo ? applyDemoGroup(state, g) : g,
+  );
   if (!user)
     return (
       <div className="page empty">
@@ -63,9 +70,10 @@ export function MyGroups({
     <div className="page library-page">
       <div className="page-heading">
         <span className="eyebrow">GOOD COMPANY, ALL IN ONE PLACE</span>
-        <h1>My Groups</h1>
+        <h1>Groups</h1>
         <p>Pick up where the conversation left off.</p>
       </div>
+      <CreatorInvitations invitations={invitations} groups={groups} />
       <section className="library-section">
         <h2>
           Joined circles <span>{joined.length}</span>
@@ -80,11 +88,15 @@ export function MyGroups({
           Circles I manage <span>{managed.length}</span>
         </h2>
         {list(managed, "Your creator circles will appear here.")}
-        {managed.length > 0 && (
-          <Link href="/admin" className="text-button">
-            Open creator dashboard <ArrowUpRight size={15} />
+        {
+          <Link
+            href={managed.length ? "/creator" : "/creator?create=1"}
+            className="text-button"
+          >
+            {managed.length ? "Open Creator studio" : "Create a group"}{" "}
+            <ArrowUpRight size={15} />
           </Link>
-        )}
+        }
       </section>
     </div>
   );

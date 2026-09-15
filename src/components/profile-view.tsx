@@ -2,46 +2,39 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowUpRight, FlaskConical, LogOut } from "lucide-react";
+import { ArrowUpRight, MessageCircle, LogOut } from "lucide-react";
 import type { Profile } from "@/lib/types";
-import { profiles, uid } from "@/lib/seed-data";
-import { initialDemo } from "@/lib/demo";
-import { authenticate, signOut } from "@/app/auth/actions";
-import { useDemo, updateDemo } from "./demo-provider";
+import { authenticate, signOut, updateProfile } from "@/app/auth/actions";
+import { signInDemo } from "@/lib/auth/demo-client";
+import { useDemo } from "./demo-provider";
 import { Avatar } from "./avatar";
 export function ProfileView({
-  user: liveUser,
+  user,
   next,
 }: {
   user: Profile | null;
   next?: string;
 }) {
-  const { state, isDemo, ready } = useDemo();
-  const user = isDemo ? state.user : liveUser;
+  const { isDemo } = useDemo();
   const [signup, setSignup] = useState(false);
   const [notice, setNotice] = useState("");
-  const [pending, startTransition] = useTransition();
+  const [pending, start] = useTransition();
   const router = useRouter();
-  function demoLogin(creator: boolean) {
-    const result = updateDemo((s) => ({
-      ...s,
-      user: creator
-        ? profiles[0]
-        : { id: uid(900), display_name: "Alex Morgan" },
-    }));
-    setNotice(
-      result.ok
-        ? "Demo account ready. Everything you do stays in this browser."
-        : result.message,
-    );
-    if (result.ok && next) router.push(next);
+  function done(result: { ok: boolean; message: string }, navigate = false) {
+    setNotice(result.message);
+    if (result.ok) {
+      if (navigate && next) router.push(next);
+      router.refresh();
+    }
   }
   return (
     <div className="page account-page">
       <div className="page-heading">
         <span className="eyebrow">YOUR LITTLE CORNER</span>
         <h1>
-          {user ? `Hello, ${user.display_name.split(" ")[0]}.` : "Come on in."}
+          {user
+            ? "Hello, " + user.display_name.split(" ")[0] + "."
+            : "Come on in."}
         </h1>
         <p>
           {user
@@ -58,28 +51,59 @@ export function ProfileView({
                 <div>
                   <h2>{user.display_name}</h2>
                   <span className="muted">
-                    {isDemo
-                      ? "Demo account · Browser-local activity"
-                      : "Signed in with Supabase"}
+                    {user.handle ? "@" + user.handle : "Your profile"}
                   </span>
                 </div>
               </div>
-              <Link href={next || "/my-groups"} className="button primary">
-                {next ? "Back to your conversation" : "Go to My Groups"}{" "}
+              <form
+                key={user.id + user.display_name + user.handle}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const fields = Object.fromEntries(
+                    new FormData(e.currentTarget),
+                  );
+                  start(async () => done(await updateProfile(fields)));
+                }}
+              >
+                <label>
+                  Display name
+                  <input
+                    name="display_name"
+                    defaultValue={user.display_name}
+                    required
+                    minLength={2}
+                    maxLength={60}
+                    autoComplete="name"
+                  />
+                </label>
+                <label>
+                  Handle
+                  <input
+                    name="handle"
+                    defaultValue={user.handle || ""}
+                    pattern="[a-zA-Z][a-zA-Z0-9_]{2,29}"
+                    minLength={3}
+                    maxLength={30}
+                    placeholder="your_handle"
+                    autoComplete="username"
+                  />
+                </label>
+                <p className="fine-print">
+                  Optional. 3–30 letters, numbers or underscores; start with a
+                  letter.
+                </p>
+                <button disabled={pending} className="button">
+                  Save profile
+                </button>
+              </form>
+              <Link href={next || "/groups"} className="button primary">
+                {next ? "Back to your conversation" : "Go to Groups"}
                 <ArrowUpRight size={16} />
               </Link>
               <button
                 className="button"
                 disabled={pending}
-                onClick={() =>
-                  startTransition(async () => {
-                    const result = isDemo
-                      ? updateDemo((s) => ({ ...s, user: null }))
-                      : await signOut();
-                    setNotice(result.message);
-                    if (result.ok) router.refresh();
-                  })
-                }
+                onClick={() => start(async () => done(await signOut()))}
               >
                 <LogOut size={16} />
                 Sign out
@@ -87,28 +111,21 @@ export function ProfileView({
             </>
           ) : isDemo ? (
             <>
-              <span className="demo-label">Demo mode</span>
-              <h2>Take a look around.</h2>
+              <h2>Make yourself at home.</h2>
               <p>
-                No account setup needed. Try joining and reacting as a reader,
-                or answer questions as a creator.
+                Sign in to join circles, react and ask the creators a question.
               </p>
               <button
                 className="button primary"
-                disabled={!ready}
-                onClick={() => demoLogin(false)}
+                disabled={pending}
+                onClick={() =>
+                  start(async () => done(await signInDemo("owner"), true))
+                }
               >
-                Explore as a reader
-              </button>
-              <button
-                className="button"
-                disabled={!ready}
-                onClick={() => demoLogin(true)}
-              >
-                Try the creator dashboard
+                Continue as Chidambar
               </button>
               <p className="fine-print">
-                Fictional accounts. No email or password collected.
+                Project-owner demo account. Activity stays in this browser.
               </p>
             </>
           ) : (
@@ -130,26 +147,24 @@ export function ProfileView({
                 </button>
               </div>
               <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  const fields = new FormData(event.currentTarget);
-                  startTransition(async () => {
-                    const result = await authenticate(
-                      {
-                        email: fields.get("email"),
-                        password: fields.get("password"),
-                        display_name: signup
-                          ? fields.get("display_name")
-                          : "Reader",
-                      },
-                      signup,
-                    );
-                    setNotice(result.message);
-                    if (result.ok) {
-                      if (!signup && next) router.push(next);
-                      router.refresh();
-                    }
-                  });
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const fields = new FormData(e.currentTarget);
+                  start(async () =>
+                    done(
+                      await authenticate(
+                        {
+                          email: fields.get("email"),
+                          password: fields.get("password"),
+                          display_name: signup
+                            ? fields.get("display_name")
+                            : "Reader",
+                        },
+                        signup,
+                      ),
+                      !signup,
+                    ),
+                  );
                 }}
               >
                 {signup && (
@@ -201,43 +216,12 @@ export function ProfileView({
           )}
         </section>
         <aside className="account-note">
-          <FlaskConical size={24} />
+          <MessageCircle size={24} />
           <h2>Built around the conversation.</h2>
           <p>
             You can always browse without an account. Sign in when you’re ready
             to react, join a circle, or send a question.
           </p>
-          {isDemo && (
-            <>
-              <p>
-                This is a working product demo with fictional content. Demo
-                activity is stored on this device and never represents real
-                traffic.
-              </p>
-              {user && (
-                <div className="inline-actions">
-                  <button
-                    className="text-button"
-                    onClick={() => demoLogin(false)}
-                  >
-                    Switch to reader
-                  </button>
-                  <button
-                    className="text-button"
-                    onClick={() => demoLogin(true)}
-                  >
-                    Switch to creator
-                  </button>
-                </div>
-              )}
-              <button
-                className="text-button muted"
-                onClick={() => setNotice(updateDemo(() => initialDemo).message)}
-              >
-                Reset demo activity
-              </button>
-            </>
-          )}
         </aside>
       </div>
     </div>

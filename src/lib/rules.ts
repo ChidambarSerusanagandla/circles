@@ -34,9 +34,23 @@ export const answerInput = z
   .max(1400);
 export const reactionInput = z.enum(REACTIONS);
 export const uuidInput = z.uuid();
-export function membershipStatus(access: "free" | "premium") {
-  return access === "premium" ? ("premium_demo" as const) : ("active" as const);
-}
+export const groupSettingsInput = groupInput.pick({
+  name: true,
+  description: true,
+  category: true,
+});
+export const profileInput = z.object({
+  display_name: z.string().trim().min(2).max(60),
+  handle: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .refine(
+      (v) => v === "" || /^[a-z][a-z0-9_]{2,29}$/.test(v),
+      "Use 3–30 letters, numbers or underscores, starting with a letter.",
+    )
+    .transform((v) => v || null),
+});
 export function requireIdentity(
   userId: string | null,
 ): asserts userId is string {

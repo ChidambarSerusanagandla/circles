@@ -14,7 +14,6 @@ import {
 import { getAssignment } from "@/lib/experiments/server";
 import { previewLength } from "@/lib/experiments/assignment";
 import { getGroups } from "@/lib/data";
-import { DEMO_MODE } from "@/lib/config";
 export default async function Discover({
   searchParams,
 }: {
@@ -22,6 +21,7 @@ export default async function Discover({
 }) {
   const { category } = await searchParams;
   const assignment = await getAssignment();
+  const length = previewLength(assignment.displayVariant ?? assignment.variant);
   const groups = (await getGroups()).filter(
     (g) => !category || g.category === category,
   );
@@ -41,9 +41,9 @@ export default async function Discover({
               of <span>conversation.</span>
             </h1>
             <p>
-              Inside jokes. Big questions. Beautiful detours.
-              <br className="desktop-br" /> Take a seat in a conversation worth
-              following.
+              Discover interesting groups by reading their conversations.
+              <br className="desktop-br" /> Inside jokes, big questions, and a
+              seat for you.
             </p>
           </div>
           <div className="intro-note">
@@ -82,7 +82,6 @@ export default async function Discover({
                 </Link>
               ))}
             </div>
-            {DEMO_MODE && <span className="demo-label">Demo data</span>}
           </div>
           <div className="feed-caption">
             <span>
@@ -95,16 +94,10 @@ export default async function Discover({
             <div className="conversation-grid">
               {groups.map((group) => (
                 <PreviewImpression key={group.id} groupId={group.id}>
-                  <ConversationCard
-                    group={group}
-                    length={previewLength(assignment.variant)}
-                  />
+                  <ConversationCard group={group} length={length} />
                 </PreviewImpression>
               ))}
-              <LocalDiscoverCards
-                category={category}
-                length={previewLength(assignment.variant)}
-              />
+              <LocalDiscoverCards category={category} length={length} />
             </div>
           ) : (
             <div className="empty">

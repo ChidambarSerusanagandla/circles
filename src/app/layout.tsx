@@ -8,6 +8,7 @@ import { getAssignment } from "@/lib/experiments/server";
 import { AnalyticsProvider } from "@/components/analytics-provider";
 import { DemoProvider } from "@/components/demo-provider";
 import { DEMO_MODE } from "@/lib/config";
+import { getUser } from "@/lib/data";
 export const metadata: Metadata = {
   title: {
     default: "Circles — good conversations, worth following",
@@ -19,13 +20,14 @@ export const metadata: Metadata = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const user = await getUser();
   return (
     <html lang="en">
       <body>
         <a href="#main" className="skip-link">
           Skip to content
         </a>
-        <DemoProvider>
+        <DemoProvider user={user}>
           <AnalyticsProvider assignment={await getAssignment()}>
             <Navigation />
             <main id="main">{children}</main>
@@ -37,7 +39,7 @@ export default async function RootLayout({
           </span>
           <span>
             {DEMO_MODE
-              ? "Demo content · Browser-local activity"
+              ? "Preview · Fictional conversations and engagement"
               : "Made for curious people"}
           </span>
         </footer>

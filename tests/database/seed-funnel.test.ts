@@ -6,13 +6,15 @@ it("loads the connected seed under service-role grants and reproduces SQL experi
   const db = new PGlite();
   try {
     await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
-      create schema auth; create table auth.users(id uuid primary key, raw_user_meta_data jsonb);
+      create schema auth; create table auth.users(id uuid primary key, raw_user_meta_data jsonb, email text);
       create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
       grant usage on schema public,auth to anon,authenticated; grant execute on function auth.uid() to anon,authenticated;`);
     for (const file of [
       "001_core.sql",
       "002_analytics.sql",
       "003_service_access.sql",
+      "004_profiles_roles.sql",
+      "005_free_groups.sql",
     ])
       await db.exec(
         readFileSync(
@@ -22,10 +24,13 @@ it("loads the connected seed under service-role grants and reproduces SQL experi
       );
     const plan = seedPlan();
     for (const p of plan.profiles)
-      await db.query("insert into auth.users values ($1,$2)", [
-        p.id,
-        JSON.stringify({ display_name: p.display_name }),
-      ]);
+      await db.query(
+        "insert into auth.users(id,raw_user_meta_data) values ($1,$2)",
+        [
+          p.id,
+          JSON.stringify({ display_name: p.display_name, handle: p.handle }),
+        ],
+      );
     await db.exec("set role service_role");
     const tables = {
       groups: plan.groups,
@@ -66,11 +71,11 @@ it("loads the connected seed under service-role grants and reproduces SQL experi
       }
     }
     await db.query("insert into public.growth_admins values ($1)", [
-      plan.profiles[0].id,
+      plan.profiles[11].id,
     ]);
     await db.exec("reset role; set role authenticated");
     await db.query("select set_config('request.jwt.claim.sub',$1,false)", [
-      plan.profiles[0].id,
+      plan.profiles[11].id,
     ]);
     expect(
       (await db.query("select * from public.preview_funnel(true)")).rows,

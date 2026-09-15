@@ -49,3 +49,13 @@ This document is updated as features and verification are completed. Seed data i
 - Final checks: lint and TypeScript passed; 54 Vitest tests passed; constrained production build passed; HTTP checks verified all main routes plus 4 vs 8 server-rendered preview messages.
 - Browser controls verified join/react/ask, reload persistence, creator answer/skip, circle creation/publishing, premium-demo joining, category filtering, keyboard skip link, stable reaction totals, and no horizontal overflow on main pages at 390px. Browser console had no errors in the final walkthrough.
 - Playwright CLI discovered its tests but worker spawn was blocked by the local sandbox. The seed CLI also hit a child-process restriction; its plan and table insertion were validated independently by the passing database test. Hosted Auth, GitHub CI and Vercel remain unvalidated.
+
+## Product refinement — 2026-09-14
+
+The follow-up product decisions kept the existing app and its design, moved Growth to an independently protected internal route, preserved the separate owner identity and fictional creators, and made every group free. The current navigation is Discover, Groups, Inbox and Profile. Creator controls remain contextual to Groups.
+
+Creator invitations now target existing handles, require explicit acceptance, and add only the relevant group role. Three accepted collaborators plus an owner were exercised in the browser. Private Inbox has its own two-person data model; it does not reuse group messages or questions. The database tests include an internal platform administrator attempting to read a different pair's private thread.
+
+The review also found a global loading boundary that returned a streamed HTTP 200 before a protected-page not-found result. Loading states were scoped to consumer routes so protected access checks now return an actual 404 before rendering. A local HTTP script covers anonymous, viewer, creator, internal and forged-session access. The final command results and browser checks are in VERIFICATION.md.
+
+Monetization branches and simulated entitlement creation were removed from the app; migration005 converts existing rows and leaves dormant metadata columns for a future explicit decision. No deployment or external messaging took place. Local demo participation, invitations and private messages remain inspectable browser storage; connected privacy relies on Supabase Auth and PostgreSQL RLS, not the demo.

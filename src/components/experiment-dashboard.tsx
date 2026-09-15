@@ -72,7 +72,7 @@ export function ExperimentDashboard({
             aria-pressed={source === "sample"}
             onClick={() => setSource("sample")}
           >
-            Demo data
+            Sample history
           </button>
           <button
             aria-pressed={source === "activity"}
@@ -92,7 +92,7 @@ export function ExperimentDashboard({
       <p className="report-disclosure">
         <Info size={16} />
         {source === "sample"
-          ? "Demo data: these visitors and outcomes were generated to demonstrate the report. They are not real experiment results."
+          ? "Demo data — shown for product demonstration only."
           : isDemo
             ? "Actions in this browser only. Demo accounts and repeat visits share one visitor identity. This is not production traffic."
             : "First-party events recorded by this installation. Simulated seed history is excluded."}

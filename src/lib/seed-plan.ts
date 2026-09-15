@@ -2,8 +2,16 @@ import { demoGroups, profiles, uid } from "./seed-data";
 import { initialDemo } from "./demo";
 import { sampleEvents } from "./analytics/sample";
 export const seedPeople = [
-  ...profiles,
-  { id: uid(900), display_name: "Alex Morgan" },
+  ...profiles.map((profile) => ({
+    ...profile,
+    handle: profile.display_name.split(" ")[0].toLowerCase(),
+  })),
+  { id: uid(900), display_name: "Alex Morgan", handle: "alex" },
+  {
+    id: uid(901),
+    display_name: "Chidambar Rao Serusanagandla",
+    handle: "chidambar",
+  },
 ];
 export const seedEmail = (index: number) =>
   `demo${String(index + 1).padStart(2, "0")}@circles.example`;
@@ -42,18 +50,16 @@ export function seedPlan(
     profiles.map((p) => ({
       group_id: g.id,
       profile_id: person(p.id),
-      status: g.access_type === "premium" ? "premium_demo" : "active",
+      status: "active",
     })),
   );
   const reactions = demoGroups.flatMap((g) =>
     g.messages.flatMap((m, i) =>
-      profiles
-        .slice(0, (i % 3) + 1)
-        .map((p, j) => ({
-          message_id: m.id,
-          profile_id: person(p.id),
-          reaction: j % 2 ? "👀" : "😂",
-        })),
+      profiles.slice(0, (i % 3) + 1).map((p, j) => ({
+        message_id: m.id,
+        profile_id: person(p.id),
+        reaction: j % 2 ? "👀" : "😂",
+      })),
     ),
   );
   const questions = initialDemo.questions.map((q) => ({
@@ -92,6 +98,7 @@ export function seedPlan(
     profiles: seedPeople.map((p) => ({
       id: person(p.id),
       display_name: p.display_name,
+      handle: p.handle,
     })),
   };
 }

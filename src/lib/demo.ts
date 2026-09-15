@@ -1,4 +1,6 @@
 import { demoGroups, profiles, uid } from "./seed-data";
+import type { CreatorInvitation } from "./creators/types";
+import type { InboxThread, InboxMessage } from "./inbox/types";
 import type {
   AnalyticsEvent,
   Group,
@@ -9,6 +11,7 @@ import type {
 import {
   answerInput,
   groupInput,
+  groupSettingsInput,
   messageInput,
   questionInput,
   reactionInput,
@@ -16,13 +19,36 @@ import {
   requireIdentity,
 } from "./rules";
 export interface DemoState {
+  creatorInvitations?: CreatorInvitation[];
+  creatorLinks?: { group_id: string; profile: Profile }[];
+  inboxThreads?: InboxThread[];
+  inboxMessages?: InboxMessage[];
   user: Profile | null;
   memberships: string[];
   reactions: string[];
   questions: Question[];
   messages: Message[];
   groups: Group[];
+  groupSettings?: Record<
+    string,
+    Pick<Group, "name" | "description" | "category">
+  >;
   events: AnalyticsEvent[];
+}
+export function configureDemoGroup(
+  state: DemoState,
+  group: Group,
+  input: unknown,
+): DemoState {
+  requireAdmin(
+    state.user?.id || null,
+    group.admins.map((a) => a.id),
+  );
+  const settings = groupSettingsInput.parse(input);
+  return {
+    ...state,
+    groupSettings: { ...state.groupSettings, [group.id]: settings },
+  };
 }
 export const initialDemo: DemoState = {
   user: null,

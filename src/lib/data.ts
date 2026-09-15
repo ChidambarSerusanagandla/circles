@@ -4,8 +4,9 @@ import { DEMO_MODE } from "./config";
 import { supabase } from "./supabase/server";
 import { demoGroups } from "./seed-data";
 import type { Group, Message, Profile, Question, Reaction } from "./types";
+import { readDemoSession } from "./auth/demo-server";
 export const getUser = cache(async () => {
-  if (DEMO_MODE) return null;
+  if (DEMO_MODE) return (await readDemoSession())?.user || null;
   const db = await supabase();
   const {
     data: { user },
@@ -13,12 +14,14 @@ export const getUser = cache(async () => {
   } = await db.auth.getUser();
   if (error && error.name !== "AuthSessionMissingError")
     throw new Error("Unable to verify your session. Please try again.");
-  return user
-    ? {
-        id: user.id,
-        display_name: String(user.user_metadata.display_name || "Reader"),
-      }
-    : null;
+  if (!user) return null;
+  const { data: profile, error: profileError } = await db
+    .from("profiles")
+    .select("id,display_name,handle")
+    .eq("id", user.id)
+    .single();
+  if (profileError) throw new Error("Could not load your profile.");
+  return profile;
 });
 export const getGroups = cache(
   async (
@@ -76,7 +79,7 @@ export const getGroups = cache(
       ]),
     ];
     const [people, reactions] = await Promise.all([
-      db.from("profiles").select("id,display_name").in("id", personIds),
+      db.from("profiles").select("id,display_name,handle").in("id", personIds),
       db.rpc("reaction_counts", {
         message_ids: (messages.data || []).map((m) => m.id),
       }),
@@ -139,7 +142,7 @@ export async function getMessages(
       ? Promise.resolve({ data: [...knownProfiles.values()], error: null })
       : db
           .from("profiles")
-          .select("id,display_name")
+          .select("id,display_name,handle")
           .in("id", [...new Set((data || []).map((m) => m.author_id))]),
     db.rpc("reaction_counts", { message_ids: ids }),
   ]);
@@ -178,7 +181,7 @@ export const getGroup = cache(
       throw new Error("Could not load this circle’s creators.");
     const { data: people, error: peopleError } = await db
       .from("profiles")
-      .select("id,display_name")
+      .select("id,display_name,handle")
       .in(
         "id",
         (admins.data || []).map((a) => a.profile_id),

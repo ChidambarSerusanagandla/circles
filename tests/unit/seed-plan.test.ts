@@ -5,7 +5,7 @@ import { funnels } from "../../src/lib/analytics/metrics";
 describe("repeatable connected seed", () => {
   it("contains relationally valid authored content and memberships", () => {
     const p = seedPlan();
-    expect(p.profiles).toHaveLength(11);
+    expect(p.profiles).toHaveLength(12);
     expect(p.groups).toHaveLength(6);
     expect(p.messages).toHaveLength(60);
     expect(p.admins).toHaveLength(18);

@@ -26,28 +26,24 @@ export async function trackServerEvent(
       crypto.randomUUID(),
       occurredAt,
     );
-    const { error } = await db
-      .from("analytics_events")
-      .upsert(
+    const { error } = await db.from("analytics_events").upsert(
+      {
+        ...event,
+        metadata: { source: "application" },
+        dedupe_key: `${name}:${key}`,
+      },
+      { onConflict: "dedupe_key", ignoreDuplicates: true },
+    );
+    if (error) throw error;
+    if (name === "group_preview_seen" && assignment.active) {
+      const { error: exposureError } = await db.from("analytics_events").upsert(
         {
-          ...event,
+          ...makeEvent(assignment, "experiment_exposed", null, userId, false),
           metadata: { source: "application" },
-          dedupe_key: `${name}:${key}`,
+          dedupe_key: `exposure:${assignment.experimentId}:${assignment.visitorId}`,
         },
         { onConflict: "dedupe_key", ignoreDuplicates: true },
       );
-    if (error) throw error;
-    if (name === "group_preview_seen" && assignment.active) {
-      const { error: exposureError } = await db
-        .from("analytics_events")
-        .upsert(
-          {
-            ...makeEvent(assignment, "experiment_exposed", null, userId, false),
-            metadata: { source: "application" },
-            dedupe_key: `exposure:${assignment.experimentId}:${assignment.visitorId}`,
-          },
-          { onConflict: "dedupe_key", ignoreDuplicates: true },
-        );
       if (exposureError) throw exposureError;
     }
   });

@@ -7,6 +7,7 @@ import { Message } from "./message";
 import { useDemo } from "./demo-provider";
 import { demoMemberCount, demoReactionCount } from "@/lib/demo";
 import { REACTIONS } from "@/lib/types";
+import { applyDemoGroup } from "@/lib/creators/demo";
 export function ConversationCard({
   group: baseGroup,
   length = 4,
@@ -17,7 +18,7 @@ export function ConversationCard({
   const { state, isDemo } = useDemo();
   const group = isDemo
     ? {
-        ...baseGroup,
+        ...applyDemoGroup(state, baseGroup),
         member_count:
           baseGroup.member_count + demoMemberCount(state, baseGroup.id),
         messages: [
@@ -41,15 +42,7 @@ export function ConversationCard({
           <span className={`category category-${group.category.toLowerCase()}`}>
             {group.category}
           </span>
-          <span
-            className={
-              group.access_type === "premium" ? "access premium" : "access"
-            }
-          >
-            {group.access_type === "premium"
-              ? `$${group.monthly_price?.toFixed(2)} / mo · Demo`
-              : "Free to join"}
-          </span>
+          <span className="access">Free to join</span>
         </div>
         <Link href={`/groups/${group.slug}`} className="card-title">
           <h2>{group.name}</h2>
@@ -59,7 +52,7 @@ export function ConversationCard({
           <AvatarStack people={group.admins} />
           <span>
             {group.admins.length}{" "}
-            {group.admins.length === 1 ? "voice" : "voices"}
+            {group.admins.length === 1 ? "creator" : "creators"}
           </span>
           <span className="watchers">
             <UsersRound size={14} />
@@ -67,7 +60,6 @@ export function ConversationCard({
           </span>
         </div>
       </div>
-      {group.is_demo && <span className="card-demo">Demo data</span>}
       <div className="card-conversation">
         <span
           className="preview-start"

@@ -1,29 +1,55 @@
-# Verification record
+# Verification record — September 14, 2026
 
-This record distinguishes checks executed locally from code/configuration prepared for external validation.
+This record covers the final free-product, role-separation, creator-invitation and private-Inbox implementation. It distinguishes executed checks from prepared or externally dependent work.
 
-## Executed locally
+## Automated checks executed locally
 
-- ESLint: passed.
-- TypeScript: passed.
-- Vitest: 54 tests passed across 8 files.
-- PostgreSQL: all three migrations executed in PGlite, including anonymous, authenticated and service-role permissions.
-- Seed integration: all connected seed rows satisfy database constraints; SQL reproduces the simulated A/B counts and excludes them from measured traffic.
-- Production build: passed with Next.js 16.3.5 using webpack and `CIRCLES_CONSTRAINED_BUILD=true`; TypeScript remains enabled.
-- Browser: reader join/reaction/question flow, persistence after reload, creator answer/skip, new-circle creation and publishing, new circle in Discover, and premium demo join verified through the available browser controls.
+| Check                             | Exact result                                                                                         |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Full Vitest unit/PostgreSQL suite | **191 tests passed in 16 files**, exit 0                                                             |
+| ESLint across repository          | Passed, exit 0                                                                                       |
+| TypeScript `tsc --noEmit`         | Passed, exit 0                                                                                       |
+| Next.js production build          | Passed, exit 0, Next.js 16.3.5; webpack with `CIRCLES_CONSTRAINED_BUILD=true`                        |
+| Local HTTP access smoke checks    | **47 assertions passed**, exit 0                                                                     |
+| Playwright desktop/mobile suite   | **Not executed successfully**: 18 tests discovered, worker startup failed with `spawn EPERM`, exit 1 |
 
-## Prepared but not executed successfully here
+Commands used from the repository root:
 
-- Playwright: 12 desktop/mobile cases are authored. CLI discovered all 12, then this sandbox rejected worker process creation with `spawn EPERM`. The suite is included in GitHub Actions; no CI run is claimed.
-- Seed CLI: `tsx` process creation was rejected locally. The seed plan and its database inserts were independently executed in the passing PostgreSQL integration test. Auth account creation requires a real Supabase project and was not exercised.
-- The ordinary Turbopack build path is subject to the same local process restriction. The constrained production build succeeded without suppressing type errors.
+```powershell
+node node_modules/eslint/bin/eslint.js .
+node node_modules/typescript/bin/tsc --noEmit
+node node_modules/vitest/vitest.mjs run --configLoader=native --pool=threads
+$env:CIRCLES_CONSTRAINED_BUILD='true'
+node node_modules/next/dist/bin/next build --webpack
+# With the resulting production server running on localhost:3000:
+node --env-file=.env.local scripts/check-access.mjs
+$env:PLAYWRIGHT_EXTERNAL_SERVER='true'
+node node_modules/@playwright/test/cli.js test --workers=1
+```
 
-## Not connected or validated
+The constrained build uses Next's worker-thread path to accommodate local child-process restrictions; TypeScript validation remains enabled. The ordinary build configuration is retained for Vercel. Playwright checks are authored, including the new collaboration and Inbox flows, but **no Playwright pass is claimed**. GitHub Actions is configured but no CI execution is claimed.
 
-- Hosted Supabase Auth, email delivery/confirmation, and hosted PostgREST integration.
-- GitHub remote/push and GitHub Actions execution.
-- Vercel deployment, domain, environment configuration, or live traffic.
+PostgreSQL tests execute migrations, including the complete 001–007 chain, inside PGlite with mock Auth users and database roles. They verify free membership conversion and joining, own-profile/unique-handle rules, creator-only posting/settings, invitation acceptance/decline and atomic role creation, private Inbox participant access, and independent internal Growth privileges. A Growth administrator cannot read a different pair's private thread. The seed integration reproduces the historical simulated experiment counts while excluding them from measured reports.
 
-No secrets or hosted accounts were supplied. Browser-local demo activity and generated metrics do not demonstrate external persistence or production adoption.
+The HTTP script verifies anonymous, owner/viewer, reader, Rahul, Priya and Arjun receive real 404 responses at `/internal/growth` and `/experiments`; authorized internal sessions receive the report and legacy redirect. It also checks wrong keys, cross-origin sign-in requests, forged sessions, the owner's full name and the four consumer navigation items.
 
-Additional final checks: HTTP responses succeeded for all main routes; variant A rendered 24 preview messages across six cards and B rendered 48. Main pages had no horizontal overflow at 390px. Category filtering returned the expected group, the keyboard skip link received focus first, and the final browser walkthrough logged no console errors.
+## Browser walkthroughs executed through the available browser controls
+
+- **Anonymous:** Discover, four-message preview, Continue watching, public conversation, sign-in requirement for reacting. No experiment or platform links in navigation.
+- **Viewer:** owner sign-in returns to the chosen group; join, reaction and question submission work; membership persists after reload. Profile retains Chidambar Rao Serusanagandla and @chidambar; saving succeeds. The formerly premium Next Chapter group joins freely with no pricing or payment flow.
+- **Creator:** managed-group selection, message posting, question answering/skipping, public answer display and settings save work. Creator navigation is contextual to Groups.
+- **Collaboration:** created After Hours Club as the owner; invited Rahul, Alex and Priya. It had one creator before acceptance and four afterward. Priya published a visible group message. Arjun received a fourth invitation and declined without receiving the group role.
+- **Inbox:** owner started a private thread with Rahul by handle; Rahul saw the message and replied. Alex's Inbox did not expose that conversation. There was no external delivery from the local demo.
+- **Internal:** private-key sign-in opened the protected report, preserving the labeled 11.2%/14.7% simulated join rates. Starting the experiment displayed an eight-message treatment in this browser; restoring Draft returned Discover to four-message previews.
+- **Responsive/accessibility:** no horizontal overflow at 390 × 844 on Discover, a group, Groups, Inbox, Creator studio or Profile. Mobile questions follow the conversation. The keyboard skip link receives focus. Final walkthrough captured no browser warning/error entries.
+
+Screenshots were saved outside the Git repository in `../screenshots/`: Discover, a group, Creator studio and Inbox. These are screenshots of the local demo, not evidence of deployment or real users.
+
+## External validation still required
+
+- Hosted Supabase Auth, email confirmation and PostgREST integration. The SQL permissions were tested locally, not against a hosted Supabase instance.
+- Seed Auth account provisioning and existing-session behavior after rotating the private internal seed password. The seed plan/database inserts are covered; local `tsx` startup previously hit the child-process restriction.
+- Normal-environment Playwright execution and GitHub CI.
+- Vercel configuration/deployment, domain setup and real traffic. **No deployment was attempted.**
+
+Demo content, including messages and invitations, is inspectable shared browser storage. It is suitable for fictional review content, not secure private communication. Connected-mode privacy uses Supabase Auth and PostgreSQL RLS. No production adoption, paid usage or real experiment lift is claimed.

@@ -16,6 +16,7 @@ type Table<Row, Insert = Partial<Row>> = {
 type ProfileRow = {
   id: string;
   display_name: string;
+  handle: string | null;
   avatar_url: string | null;
   created_at: string;
 };
@@ -57,6 +58,28 @@ type EventRow = {
 export type Database = {
   public: {
     Tables: {
+      inbox_threads: Table<{
+        id: string;
+        participant_low: string;
+        participant_high: string;
+        created_at: string;
+        updated_at: string;
+      }>;
+      inbox_messages: Table<{
+        id: string;
+        thread_id: string;
+        sender_id: string;
+        content: string;
+        created_at: string;
+      }>;
+      creator_invitations: Table<{
+        id: string;
+        group_id: string;
+        inviter_id: string;
+        invitee_id: string;
+        status: "pending" | "accepted" | "declined";
+        created_at: string;
+      }>;
       growth_admins: Table<{ profile_id: string }>;
       profiles: Table<ProfileRow>;
       groups: Table<GroupRow>;
@@ -101,8 +124,34 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      invite_creator: {
+        Args: { target: string; invited_handle: string };
+        Returns: string;
+      };
+      respond_creator_invitation: {
+        Args: { invitation_id: string; accept: boolean };
+        Returns: undefined;
+      };
+      start_inbox_thread: {
+        Args: { recipient_handle: string };
+        Returns: string;
+      };
+      inbox_message_page: {
+        Args: { target: string; before_time?: string; before_id?: string };
+        Returns: {
+          id: string;
+          thread_id: string;
+          sender_id: string;
+          content: string;
+          created_at: string;
+        }[];
+      };
       is_group_admin: { Args: { target: string }; Returns: boolean };
       is_growth_admin: { Args: Record<string, never>; Returns: boolean };
+      set_preview_experiment_status: {
+        Args: { new_status: "draft" | "running" | "completed" };
+        Returns: undefined;
+      };
       group_counts: {
         Args: Record<string, never>;
         Returns: { group_id: string; member_count: number }[];

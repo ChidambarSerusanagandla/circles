@@ -1,4 +1,4 @@
-export default function Loading() {
+export default function PageLoading() {
   return (
     <div className="page" aria-label="Loading conversations" role="status">
       <div className="skeleton skeleton-title" />
