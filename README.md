@@ -22,11 +22,11 @@ All groups are free to discover and join. Browsing is public. Reacting requires 
 
 ### Product surfaces and access
 
-| Surface         | Entry and purpose                                                                                                                   | Access                                                                                                             |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Consumer        | Discover, Groups, Inbox, Profile; reading, joining, reacting, questions and private messages | All roles see these four navigation items. Anonymous visitors encounter sign-in prompts within Groups, Inbox and Profile before account actions. |
+| Surface         | Entry and purpose                                                                                                                                         | Access                                                                                                                                                |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Consumer        | Discover, Groups, Inbox, Profile; reading, joining, reacting, questions and private messages                                                              | All roles see these four navigation items. Anonymous visitors encounter sign-in prompts within Groups, Inbox and Profile before account actions.      |
 | Creator         | Contextual creator tools at `/creator`; group creation, creator invitations, publishing, question review, basic settings, and Members/Questions/Reactions | A signed-in person can create a group; its creators manage that group's content and invite collaborators. This never grants internal platform access. |
-| Internal growth | `/internal/growth`; experiment configuration and cross-group conversion reporting                                                   | A separately authorized internal platform account. No consumer navigation or profile link points here.             |
+| Internal growth | `/internal/growth`; experiment configuration and cross-group conversion reporting                                                                         | A separately authorized internal platform account. No consumer navigation or profile link points here.                                                |
 
 The legacy `/experiments` entry enforces the same internal guard. Hiding a link is not authorization: the server checks internal access, and connected SQL functions independently check `growth_admins`. Being present in `group_admins` does not grant platform access. `/demo` is a direct reviewer utility, outside ordinary consumer navigation.
 
@@ -133,19 +133,19 @@ A database function creates a group and its first creator atomically; `created_b
 
 ### Authorization and RLS
 
-| Entity/action                       | Database rule                                                                                        |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Public reading                      | Groups, public display names, creator roster and messages                                            |
-| Profile editing                     | Own profile; display name, optional handle and avatar columns; handle format and uniqueness enforced |
-| Group editing/posting               | Admin of that group; posts must use own author ID                                                    |
-| Creator invitations                 | Only that group's creators invite; only the recipient responds through RPC; duplicate pending invitations rejected |
+| Entity/action                       | Database rule                                                                                                                                              |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Public reading                      | Groups, public display names, creator roster and messages                                                                                                  |
+| Profile editing                     | Own profile; display name, optional handle and avatar columns; handle format and uniqueness enforced                                                       |
+| Group editing/posting               | Admin of that group; posts must use own author ID                                                                                                          |
+| Creator invitations                 | Only that group's creators invite; only the recipient responds through RPC; duplicate pending invitations rejected                                         |
 | Private Inbox                       | Only the two thread participants read messages; senders must be the signed-in participant. Internal growth access adds no access to other people's threads |
-| Membership                          | Insert/read own; unique group/person; new memberships must use active status                                 |
-| Reactions                           | Insert/delete/read own rows; public aggregate counts via RPC                                         |
-| Questions                           | Members submit as themselves; author/admin can read pending/skipped; answered questions are public   |
-| Answers/skips                       | Authorized RPC only; ordinary users cannot directly change moderation status                         |
-| Global growth reports/configuration | Explicit growth-admin account only; group administration does not grant access                       |
-| Assignments/event writes            | Trusted server service role only                                                                     |
+| Membership                          | Insert/read own; unique group/person; new memberships must use active status                                                                               |
+| Reactions                           | Insert/delete/read own rows; public aggregate counts via RPC                                                                                               |
+| Questions                           | Members submit as themselves; author/admin can read pending/skipped; answered questions are public                                                         |
+| Answers/skips                       | Authorized RPC only; ordinary users cannot directly change moderation status                                                                               |
+| Global growth reports/configuration | Explicit growth-admin account only; group administration does not grant access                                                                             |
+| Assignments/event writes            | Trusted server service role only                                                                                                                           |
 
 The service key is used only by isolated server analytics modules and the development seed. Product mutations use the signed-in user's client and RLS. Migration 003 explicitly grants service-role table privileges: bypassing RLS alone does not confer table access.
 
@@ -203,7 +203,11 @@ Unit tests cover creation rules, duplicate memberships, reactions, question perm
 
 PGlite runs the actual migrations in embedded PostgreSQL, with mock Auth identity and anonymous/authenticated/service roles. It checks cross-user permissions, private membership lists, creator invitation access, Inbox participant isolation, admin impersonation, transactional answers, explicit service privileges, and the full connected seed's SQL results.
 
-Playwright scenarios cover desktop/mobile reviewer flows. GitHub Actions is configured to install Chromium and run the check/build/browser pipeline. A configured workflow is not evidence of a successful CI run. See [VERIFICATION.md](VERIFICATION.md) for the actual commands, results and limitations of the current revision; this README does not claim a test pass count.
+Playwright has separate environments. `npm run test:e2e:connected` (also `test:e2e`) requires `NEXT_PUBLIC_DEMO_MODE=false`, the public Supabase URL/key, and the private `SEED_PASSWORD` / `SEED_INTERNAL_PASSWORD` environment values for the already-seeded accounts. It signs in through the real UI and checks product flows, invitation acceptance, Inbox isolation and Growth authorization using ordinary user sessions. Run against a test Supabase project: these tests create fictional groups/messages and observed test activity, which remains separate from simulated seed analytics.
+
+`npm run test:e2e:demo` requires an explicitly demo-mode build. Only that suite tests reviewer shortcuts. GitHub Actions uses this demo suite without hosted account secrets. The preflight rejects a mismatch between the test environment and the running app; never re-enable demo login to satisfy a connected test. Build in the selected mode before testing. Set `PLAYWRIGHT_EXTERNAL_SERVER=true` to reuse an already-running matching server, otherwise Playwright starts the production build.
+
+Both suites run desktop/mobile projects with redacted reporting and no credential-bearing traces, screenshots, videos or saved login sessions. Connected results go to ignored `test-results/connected/safe-results.json`. A configured workflow is not evidence of a successful CI run. See [VERIFICATION.md](VERIFICATION.md) for actual results and [E2E_SELECTOR_AUDIT.md](E2E_SELECTOR_AUDIT.md) for the conversation locator correction.
 
 ## Running Locally
 

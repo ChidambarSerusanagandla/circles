@@ -1,4 +1,22 @@
-# Verification record — September 14, 2026
+# Verification record
+
+## Question-status follow-up — September 16, 2026
+
+The next completed connected run is **desktop 9 passed / 0 failed, mobile 8 passed / 1 failed, total 17 passed / 1 failed / 0 skipped**. This verifies the prior four selector corrections. The sole remaining failure matched the answered-question status both inside and outside the active main region.
+
+The final correction changes only the creator Playwright spec: question assertions use the existing accessible main region, exact question content, unique row/badge counts and visible expected status text. No application, authentication, RLS, Growth, Inbox or creator/question behavior changed. See [E2E_SELECTOR_AUDIT.md](E2E_SELECTOR_AUDIT.md) for evidence and its limits.
+
+Rerun results after this narrow correction: ESLint **passed**, TypeScript **passed**, all **201 unit/PostgreSQL tests passed in 17 files**, and production build **passed** using the existing webpack/worker-thread setting. The exact connected E2E command was attempted; worker launch failed with `spawn EPERM` before executing any tests in this agent shell. A fresh completed run from the user's working terminal is still required. **18/18 is not claimed.** No deployment occurred.
+
+## Connected selector follow-up — September 16, 2026
+
+The connected Supabase suite has actually completed a run: **desktop 7 passed / 2 failed, mobile 7 passed / 2 failed, total 14 passed / 4 failed / 0 skipped**. Those results precede the selector correction. They supersede the earlier statement that no connected browser suite had run. All four failures are strict conversation-locator scope errors; see [E2E_SELECTOR_AUDIT.md](E2E_SELECTOR_AUDIT.md) for individual diagnoses and evidence limits.
+
+After adding a named accessible group conversation region and scoped strict tests: lint passed, TypeScript passed, **201 unit/PostgreSQL tests passed in 17 files**, and the production build passed. The requested connected rerun discovered 18 cases but this agent shell failed to spawn the Playwright worker (`spawn EPERM`), before any test started. The user's normal-terminal rerun remains pending. **18/18 is not claimed.** Authentication, RLS and product behavior remain unchanged; no deployment occurred.
+
+The sections below are historical records, not evidence that the new connected suite has passed completely.
+
+## Product implementation — September 14, 2026
 
 This record covers the final free-product, role-separation, creator-invitation and private-Inbox implementation. It distinguishes executed checks from prepared or externally dependent work.
 
@@ -77,17 +95,17 @@ The reported `authenticate(...)` payload was produced by Next.js development Ser
 
 Checks actually executed after the fix:
 
-| Check | Result |
-| --- | --- |
-| ESLint | Passed, exit 0 |
-| TypeScript | Passed, exit 0 |
-| Full unit/PostgreSQL suite | **201 tests passed in 17 files**, exit 0 |
-| New auth regression cases | 10 cases covering sign-in, signup confirmation/session outcomes, invalid input, returned/thrown sensitive errors and sign-out without logging |
-| Production build | Passed, exit 0; Next.js 16.3.5, webpack and the existing constrained-build setting |
-| Built configuration | Both Server Function tracing and browser-to-terminal forwarding are false |
+| Check                              | Result                                                                                                                                                                         |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ESLint                             | Passed, exit 0                                                                                                                                                                 |
+| TypeScript                         | Passed, exit 0                                                                                                                                                                 |
+| Full unit/PostgreSQL suite         | **201 tests passed in 17 files**, exit 0                                                                                                                                       |
+| New auth regression cases          | 10 cases covering sign-in, signup confirmation/session outcomes, invalid input, returned/thrown sensitive errors and sign-out without logging                                  |
+| Production build                   | Passed, exit 0; Next.js 16.3.5, webpack and the existing constrained-build setting                                                                                             |
+| Built configuration                | Both Server Function tracing and browser-to-terminal forwarding are false                                                                                                      |
 | Connected development HTTP sign-in | Passed: invalid synthetic password rejected; real seeded Alex account signed in through the Next server action; session cookie received; authenticated Profile survived reload |
-| Fresh server log scan | Passed: no synthetic password marker, configured credential/secret values, returned cookie values, access token or refresh token; no `authenticate(...)` argument trace |
-| Browser production bundle scan | No configured Supabase server key, analytics signing secret, or seed-password values found |
+| Fresh server log scan              | Passed: no synthetic password marker, configured credential/secret values, returned cookie values, access token or refresh token; no `authenticate(...)` argument trace        |
+| Browser production bundle scan     | No configured Supabase server key, analytics signing secret, or seed-password values found                                                                                     |
 
 The runtime verification invoked the actual development server action over HTTP. Calling the exported function directly would not exercise the framework logger. A generated invalid password marker was checked first, before sending the private seed credential. Credentials and response cookies stayed in the local checker's memory and were never printed. Both captured stdout/stderr and Next's fresh development log were inspected; ordinary GET/POST `/profile` status lines remained.
 

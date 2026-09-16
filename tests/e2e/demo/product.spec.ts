@@ -3,8 +3,8 @@ import type { Page } from "@playwright/test";
 import {
   variantFor,
   VISITOR_COOKIE,
-} from "../../src/lib/experiments/assignment";
-import { uid } from "../../src/lib/seed-data";
+} from "../../../src/lib/experiments/assignment";
+import { uid } from "../../../src/lib/seed-data";
 const group = "/groups/roommates-after-midnight";
 async function internalLogin(page: Page) {
   await page.goto("/internal/sign-in");

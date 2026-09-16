@@ -148,7 +148,11 @@ export function GroupView({
               </span>
             </div>
           </div>
-          <div className="conversation-panel">
+          <div
+            className="conversation-panel"
+            role="region"
+            aria-label={`Conversation in ${group.name}`}
+          >
             <div className="conversation-date">
               THE CONVERSATION <span>Times shown in UTC</span>
             </div>
