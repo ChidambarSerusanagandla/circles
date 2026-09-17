@@ -205,6 +205,8 @@ PGlite runs the actual migrations in embedded PostgreSQL, with mock Auth identit
 
 Playwright has separate environments. `npm run test:e2e:connected` (also `test:e2e`) requires `NEXT_PUBLIC_DEMO_MODE=false`, the public Supabase URL/key, and the private `SEED_PASSWORD` / `SEED_INTERNAL_PASSWORD` environment values for the already-seeded accounts. It signs in through the real UI and checks product flows, invitation acceptance, Inbox isolation and Growth authorization using ordinary user sessions. Run against a test Supabase project: these tests create fictional groups/messages and observed test activity, which remains separate from simulated seed analytics.
 
+Connected runs also require `E2E_SUPABASE_PROJECT_REF` matching that test project's URL, plus the existing server-only service key and analytics signing secret for cleanup. Every test journals its own resources before creating them, cleans them in teardown even after assertion failures, and retries cleanup after the suite. Interrupted runs retain recovery journals in ignored `.e2e-runs/`. Use a separate Supabase test project for CI or while the portfolio is being reviewed; test circles are briefly public during a run. See [E2E_CLEANUP.md](E2E_CLEANUP.md) for the guarded dry-run/apply command, recovery, foreign-key behavior and historical attribution limits.
+
 `npm run test:e2e:demo` requires an explicitly demo-mode build. Only that suite tests reviewer shortcuts. GitHub Actions uses this demo suite without hosted account secrets. The preflight rejects a mismatch between the test environment and the running app; never re-enable demo login to satisfy a connected test. Build in the selected mode before testing. Set `PLAYWRIGHT_EXTERNAL_SERVER=true` to reuse an already-running matching server, otherwise Playwright starts the production build.
 
 Both suites run desktop/mobile projects with redacted reporting and no credential-bearing traces, screenshots, videos or saved login sessions. Connected results go to ignored `test-results/connected/safe-results.json`. A configured workflow is not evidence of a successful CI run. See [VERIFICATION.md](VERIFICATION.md) for actual results and [E2E_SELECTOR_AUDIT.md](E2E_SELECTOR_AUDIT.md) for the conversation locator correction.
@@ -303,6 +305,7 @@ It keeps TypeScript checking enabled and changes how build work is executed. Do 
 | `SEED_INTERNAL_PASSWORD`               | Seed command; private owner password, 16+ characters and different from `SEED_PASSWORD`          | Local command only       |
 | `CIRCLES_CONSTRAINED_BUILD`            | Optional local workaround                                                                        | Build only               |
 | `PLAYWRIGHT_EXTERNAL_SERVER`           | Optional test reuse of an existing server                                                        | Tests only               |
+| `E2E_SUPABASE_PROJECT_REF`             | Explicit cleanup target matching the test Supabase URL; never a production project               | Tests only               |
 
 Generate a signing secret locally with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` and store it in the environment. Never prefix a service key, cookie secret or password with `NEXT_PUBLIC_`. The repository ignores all environment files except the empty template.
 

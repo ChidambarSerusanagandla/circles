@@ -1,5 +1,22 @@
 # Connected conversation selector audit
 
+## Desktop creator-invitation follow-up
+
+The latest completed connected run is **desktop 8 passed / 1 failed, mobile 9 passed / 0 failed, total 17 passed / 1 failed / 0 skipped**. The only failure is the invitation-card assertion in the first creator scenario. The database assertions immediately before it passed: three pending invitations and one owner/creator. The failed group's records were already removed by teardown; the recovery-journal directory contains no remaining JSON journals.
+
+Evidence checked for this specific failure:
+
+- Migration 007 has a partial unique index on `(group_id, invitee_id)` for pending invitations. The RPC locks the group and inserts once. The page query filters by the signed-in recipient and pending status. There is one component mount, one keyed map, no optimistic copy and no separate responsive rendering.
+- A temporary, journaled probe against the hosted project used real seeded sign-ins and the public client for creation/invitation queries. It created exactly three pending rows for Arjun, Priya and Alex. A repeated invitation failed with PostgreSQL `23505`. Each recipient's unfiltered-by-recipient group query returned exactly their one invitation; explicit reads of the other two invitation IDs returned zero rows.
+- The recipient's authenticated desktop HTTP response contained one invitation article, initially after the main element, and two hidden framework streaming segments. The failure itself identifies one match through the accessible `article` role and the second only through a raw DOM selector. This supports hidden streaming markup as the extra match, rather than duplicate invitation records.
+- The saved failure snapshot is of the owner's Creator studio page, not the secondary recipient page. Consequently the original two elements' computed visibility cannot be established retrospectively. No two visible invitation cards or duplicate-rendering application defect was found. This is treated as a test-selector scope defect, with that evidence limit explicit.
+
+The test now scopes to the accessible `main` → `article` containing the exact level-three group heading, then requires **exactly one visible card**. Two accessible cards still fail. It additionally checks three distinct intended recipient IDs and, before acceptance, recipient-only API visibility under real RLS. No positional selectors, application source, schema, RLS or authentication changes were made.
+
+The probe was cleaned in `finally` using the existing guarded cleanup implementation: its group, owner membership in `group_admins` and three invitations were removed. The final protected-data audit again found **six intended circles, zero E2E circles**, no targeted leftovers and unchanged previously protected records.
+
+Local lint, TypeScript, **234 unit/PostgreSQL tests across 19 files**, and the production build passed. The connected browser rerun is deliberately left to the user's working terminal, as requested. The completed 17/1/0 result is the baseline; **18/18 is not yet claimed**. No deployment occurred.
+
 ## Final question-status scope correction
 
 The next completed connected run improved to **17 passed / 1 failed / 0 skipped**: desktop **9/0**, mobile **8/1**. All four original failures below passed. The remaining mobile creator-question failure matched two `answered` badges, one under `#main` and one outside it, through an unscoped `.own-questions > div` locator.

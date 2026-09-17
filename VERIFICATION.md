@@ -1,5 +1,40 @@
 # Verification record
 
+## Desktop invitation-card follow-up — September 16, 2026
+
+Latest completed connected baseline: **desktop 8 passed / 1 failed; mobile 9 passed / 0 failed; total 17 passed / 1 failed / 0 skipped**. The single failure is an unscoped invitation-card locator matching two DOM elements. It is now scoped to the accessible main/article with an exact group heading and strict uniqueness/visibility assertions. Additional connected assertions verify three distinct intended recipients and recipient-only RLS results before acceptance. See [E2E_SELECTOR_AUDIT.md](E2E_SELECTOR_AUDIT.md) for the historical DOM evidence limitation.
+
+A fresh hosted probe confirmed exactly three invitations for distinct recipients, duplicate-pending rejection (`23505`), and only one readable invitation per pending recipient. All temporary probe data was cleaned in `finally`. The original failed run's E2E group was already absent; no recovery journals remain. Final protected-data verification found **six intended circles, zero E2E circles**, zero targeted leftovers and unchanged protected records.
+
+Checks after this correction: ESLint **passed**, TypeScript **passed**, **234 unit/PostgreSQL tests passed in 19 files**, production build **passed** (existing constrained webpack configuration). No application behavior, schema/RLS, authentication or design changes. No deployment.
+
+As requested, the next connected desktop/mobile run is for the user's working terminal:
+
+```powershell
+$env:PLAYWRIGHT_EXTERNAL_SERVER="true"
+npm.cmd run test:e2e:connected
+```
+
+**18/18 remains unverified for this change.** After that run, check the saved report and confirm cleanup still leaves six intended circles and zero E2E circles.
+
+## Connected E2E cleanup — September 16, 2026
+
+The saved connected report before this pass completed **18 passed / 0 failed / 0 skipped** (9 desktop, 9 mobile), superseding the older selector-stage counts below. That run used the previous suite without automatic cleanup; it is not proof that the new teardown hooks have passed in a browser.
+
+Applied the guarded cleanup to the configured `circles-review` project after a dry run and 33 cleanup safety tests. Removed 18 E2E groups and their cascaded data (33 creator links, 12 memberships, 27 messages, 6 reactions, 18 questions, 6 answers, 18 invitations), 11 precisely matched Inbox messages and 112 group-linked observed events. The shared thread was retained. Protected-record checksums matched afterward: all six seeded groups/content, all 13 profiles/Auth identities, both Growth roles, experiment configuration, 2,000 existing assignments and 5,195 untargeted analytics events remained intact. Unattributable historical browsing events were deliberately retained. See [E2E_CLEANUP.md](E2E_CLEANUP.md).
+
+Checks after adding journaled teardown and recovery:
+
+- ESLint: passed, exit 0.
+- TypeScript: passed, exit 0.
+- Full unit/PostgreSQL suite: **234 passed in 19 files**, including 33 new cleanup tests executing guards and the real cleanup implementation against all seven migrations.
+- Production build: passed, exit 0, using the existing Next 16.3.5 webpack/worker-thread setting.
+- Hosted cleanup and protected-data verification: passed. Remaining database groups: six intended circles, zero E2E circles.
+- Connected Discover HTTP and live browser checks: six conversation cards, zero E2E cards; all six seeded group names present.
+- New connected E2E run: attempted, but the agent shell hit `spawn EPERM` when launching a worker, before any test case ran. Preflight completed and its retained journal was successfully recovered with the cleanup CLI. A full browser run of the new teardown still needs the user's working terminal.
+
+No application source, schema/RLS, product behavior or visual design changed. No deployment occurred. The sections below are historical checks.
+
 ## Question-status follow-up — September 16, 2026
 
 The next completed connected run is **desktop 9 passed / 0 failed, mobile 8 passed / 1 failed, total 17 passed / 1 failed / 0 skipped**. This verifies the prior four selector corrections. The sole remaining failure matched the answered-question status both inside and outside the active main region.

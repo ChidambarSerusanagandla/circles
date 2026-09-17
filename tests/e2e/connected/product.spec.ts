@@ -1,5 +1,12 @@
-import { expect, test } from "@playwright/test";
-import { createGroup, dbFor, login, personPage, uniqueText } from "./helpers";
+import { expect, test } from "./fixture";
+import {
+  closePerson,
+  createGroup,
+  dbFor,
+  login,
+  personPage,
+  uniqueText,
+} from "./helpers";
 
 const publicGroup = "/groups/roommates-after-midnight";
 
@@ -125,7 +132,7 @@ test("viewer signs in, joins once, reacts, asks and finds the circle in Groups",
         .getByRole("heading", { name: group.name, exact: true }),
     ).toBeVisible();
   } finally {
-    await creatorContext.close();
+    await closePerson(creatorContext);
   }
 });
 
@@ -180,7 +187,7 @@ test("viewer and creator are denied Growth while the separately authorized inter
           expect((await person.goto(route))?.status()).toBe(404);
       }
     } finally {
-      await context.close();
+      await closePerson(context);
     }
   }
 });

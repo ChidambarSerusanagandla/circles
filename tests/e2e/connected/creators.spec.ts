@@ -1,6 +1,7 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixture";
 import {
   createGroup,
+  closePerson,
   dbFor,
   groupConversation,
   login,
@@ -57,6 +58,21 @@ test("creator invitations require acceptance before three collaborators can publ
     expect(pending.error === null).toBe(true);
     expect(pending.data).toHaveLength(3);
     expect(
+      new Set(pending.data?.map((invitation) => invitation.invitee_id)).size,
+    ).toBe(3);
+    const intended = await db
+      .from("profiles")
+      .select("id")
+      .in(
+        "handle",
+        recipients.map((recipient) => recipient.handle),
+      );
+    expect(intended.error).toBeNull();
+    expect(intended.data).toHaveLength(3);
+    expect(
+      pending.data?.map((invitation) => invitation.invitee_id).sort(),
+    ).toEqual(intended.data?.map((profile) => profile.id).sort());
+    expect(
       pending.data?.every((invitation) => invitation.status === "pending"),
     ).toBe(true);
     const creators = await db
@@ -79,6 +95,15 @@ test("creator invitations require acceptance before three collaborators can publ
           .eq("handle", recipient.handle)
           .single();
         expect(profile.error).toBeNull();
+        // Query without an invitee filter so this assertion exercises RLS itself.
+        const visibleInvitations = await recipientDb
+          .from("creator_invitations")
+          .select("invitee_id, status")
+          .eq("group_id", groupId);
+        expect(visibleInvitations.error).toBeNull();
+        expect(visibleInvitations.data).toEqual([
+          { invitee_id: profile.data!.id, status: "pending" },
+        ]);
         const prematurePost = await recipientDb.from("messages").insert({
           group_id: groupId,
           author_id: profile.data!.id,
@@ -86,9 +111,18 @@ test("creator invitations require acceptance before three collaborators can publ
         });
         expect(prematurePost.error?.code).toBe("42501");
         await person.page.goto("/groups");
+        // Scope to the active accessible page, excluding hidden streamed markup.
         const invitation = person.page
-          .locator(".creator-invitation")
-          .filter({ hasText: group.name });
+          .getByRole("main")
+          .getByRole("article")
+          .filter({
+            has: person.page.getByRole("heading", {
+              name: group.name,
+              level: 3,
+              exact: true,
+            }),
+          });
+        await expect(invitation).toHaveCount(1);
         await expect(invitation).toBeVisible();
         await invitation
           .getByRole("button", { name: "Accept invitation", exact: true })
@@ -124,7 +158,7 @@ test("creator invitations require acceptance before three collaborators can publ
         expect(persisted.error).toBeNull();
         expect(persisted.data).toHaveLength(1);
       } finally {
-        await person.context.close();
+        await closePerson(person.context);
       }
     });
   }
@@ -260,10 +294,10 @@ test("creator reviews viewer questions, publishes an answer and keeps skipped qu
           questionToSkip,
         );
       } finally {
-        await anonymous.context.close();
+        await closePerson(anonymous.context);
       }
     });
   } finally {
-    await viewer.context.close();
+    await closePerson(viewer.context);
   }
 });

@@ -11,6 +11,9 @@ for (const name of [
   "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
   "SEED_PASSWORD",
   "SEED_INTERNAL_PASSWORD",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "ANALYTICS_COOKIE_SECRET",
+  "E2E_SUPABASE_PROJECT_REF",
 ])
   if (!process.env[name])
     throw new Error(
@@ -21,7 +24,7 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000";
 export default defineConfig({
   testDir: "./tests/e2e/connected",
   outputDir: "./test-results/connected",
-  globalSetup: "./tests/e2e/mode-check.ts",
+  globalSetup: "./tests/e2e/connected/setup.ts",
   metadata: { mode: "connected" },
   // These accounts share a real database; parallel runs would race mutations.
   fullyParallel: false,
@@ -52,7 +55,8 @@ export default defineConfig({
       ? undefined
       : {
           command: "npm run start",
-          url: baseURL,
+          // Startup polling must not create unjournaled analytics visitors.
+          url: new URL("/icon.svg", baseURL).href,
           reuseExistingServer: false,
           timeout: 60_000,
         },

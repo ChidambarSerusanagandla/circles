@@ -7,6 +7,8 @@ import {
 import { createServerClient } from "@supabase/ssr";
 import { randomUUID } from "node:crypto";
 import type { Database } from "../../../src/lib/database.types";
+import { runFor } from "./run-journal";
+export { closePerson } from "./run-journal";
 
 const accounts = {
   viewer: { email: "demo11@circles.example", name: "Alex Morgan" },
@@ -33,6 +35,7 @@ export async function personPage(browser: Browser, page: Page, info: TestInfo) {
     locale: use.locale,
     timezoneId: use.timezoneId,
   });
+  await runFor(info).addContext(context, use.baseURL!);
   return { context, page: await context.newPage() };
 }
 
@@ -75,6 +78,11 @@ export async function login(page: Page, role: Role) {
     await expect(
       page.getByRole("heading", { name: account.name, exact: true }),
     ).toBeVisible();
+    const identity = await (await dbFor(page)).auth.getUser();
+    if (identity.error || identity.data.user?.email !== account.email)
+      throw new Error(
+        "The signed-in browser must use the expected Supabase project",
+      );
   } catch {
     await page
       .getByLabel("Password", { exact: true })
@@ -103,11 +111,13 @@ export async function dbFor(page: Page) {
 }
 
 export function uniqueText(prefix: string, info: TestInfo) {
-  return `E2E ${prefix} ${info.project.name} ${randomUUID().slice(0, 8)}`;
+  const marker = runFor(info).journal.id.replaceAll("-", "").slice(0, 12);
+  return `E2E ${prefix} ${info.project.name} ${marker}-${randomUUID().slice(0, 8)}`;
 }
 
 export async function createGroup(page: Page, info: TestInfo, prefix: string) {
   const name = uniqueText(prefix, info);
+  await runFor(info).registerGroup(name);
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
   await page.goto("/groups");
   const create = page.getByRole("link", {

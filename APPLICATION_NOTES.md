@@ -198,7 +198,7 @@ The product action succeeds independently. Events can be lost because there is n
 
 **What was actually validated?**
 
-The repository includes lint and TypeScript commands, unit tests, PostgreSQL/RLS tests that execute the migrations, seed/report checks, and desktop/mobile Playwright scenarios. The current revision's actual executions and environment limits belong in [VERIFICATION.md](VERIFICATION.md); an authored test is not automatically a passed test. Hosted Supabase Auth, email confirmation, private owner password rotation, cookie transport and Vercel have not been validated. Do not quote an earlier phase's pass count as evidence for later refinements.
+The repository includes lint and TypeScript commands, unit tests, PostgreSQL/RLS tests that execute the migrations, seed/report checks, and desktop/mobile Playwright scenarios. A connected hosted-Supabase browser run completed 18/18 before the cleanup-lifecycle refinement. The current revision's exact executions and environment limits belong in [VERIFICATION.md](VERIFICATION.md); an authored test is not automatically a passed test. Email confirmation, private owner password rotation and Vercel still need separate validation. Do not quote an earlier phase's pass count as evidence for later refinements.
 
 **Is it deployed or used in production?**
 
@@ -215,7 +215,7 @@ Validate the connected deployment, observe the core loop with real people, and a
 - Internal surface: separately guarded reports and configuration at `/internal/growth`, with the same guard on legacy `/experiments` and no consumer links.
 - Reviewer identities: `/demo` can switch reader, Rahul, Priya, Arjun and project owner without promoting internal permissions. Inbox and invitation content is shared browser demo data, not secure private communication.
 - Simulated evidence: generated sample memberships/reactions, historical analytics and the 11.2%/14.7% example are demonstration data, not production adoption or a measured improvement.
-- External limits: no hosted Supabase validation, no Vercel deployment, no real experiment winner, no statistical-significance calculation.
+- External limits: no Vercel deployment, no real experiment winner, no statistical-significance calculation. Connected test activity is observed test traffic, not production adoption.
 
 ## Development evidence
 
@@ -228,6 +228,8 @@ The credential refinement gives the connected seed owner a private password sepa
 The current product pass makes all groups free, keeps Discover / Groups / Inbox / Profile navigation, and adds explicit creator collaboration and separate one-to-one text threads. Migrations 005–007 apply the free membership rules, participant-only Inbox policies and invitation workflow. Local source and authored tests are evidence of implementation; exact executed checks are recorded in [VERIFICATION.md](VERIFICATION.md).
 
 Before interviewing, walk through the code yourself. Describe your product decisions and code review accurately, including where AI assisted implementation; do not imply unaided authorship.
+
+The connected browser tests exposed a real testing problem: they created public groups in the shared reviewer database and left them there. The correction uses strict fixture markers and verified account ownership for historical cleanup, plus durable per-test resource journals and failure-safe teardown going forward. Group content can use foreign-key cascades, but analytics requires explicit deletion first because its group reference uses `SET NULL`. Shared Inbox threads require message-specific cleanup. I preserved older analytics without provable test ownership rather than erase potentially genuine review activity. The cleanup implementation was tested against the actual migrations; a separate test Supabase project remains the preferred environment for CI. Details and limitations are recorded in [E2E_CLEANUP.md](E2E_CLEANUP.md).
 
 ## Future possibilities
 

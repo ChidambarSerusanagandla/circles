@@ -1,6 +1,9 @@
-import { expect, test, type BrowserContext } from "@playwright/test";
+import { type BrowserContext } from "@playwright/test";
+import { expect, test } from "./fixture";
+import { runFor } from "./run-journal";
 import {
   dbFor,
+  closePerson,
   login,
   personPage,
   privateConversation,
@@ -14,22 +17,52 @@ test("private Inbox allows its two participants and denies other users, includin
   const contexts: BrowserContext[] = [];
   const message = uniqueText("Private hello", testInfo);
   const reply = uniqueText("Private reply", testInfo);
+  const run = runFor(testInfo);
 
   try {
     await login(page, "viewer");
+    const viewerDb = await dbFor(page);
+    const identity = await viewerDb.auth.getUser();
+    expect(identity.error).toBeNull();
+    const recipientProfile = await viewerDb
+      .from("profiles")
+      .select("id")
+      .eq("handle", "rahul")
+      .single();
+    expect(recipientProfile.error).toBeNull();
+    const pair = [identity.data.user!.id, recipientProfile.data!.id].sort();
+    const baseline = await viewerDb
+      .from("inbox_threads")
+      .select("id,updated_at")
+      .eq("participant_low", pair[0])
+      .eq("participant_high", pair[1])
+      .maybeSingle();
+    expect(baseline.error).toBeNull();
+    if (baseline.data)
+      await run.registerThread({
+        id: baseline.data.id,
+        createdByTest: false,
+        baselineUpdatedAt: baseline.data.updated_at,
+      });
     await page.goto("/inbox");
     await page.getByLabel("Find someone by handle").fill("@rahul");
     await page
       .getByRole("button", { name: "Open conversation", exact: true })
       .click();
-    await expect(page).toHaveURL(/\/inbox\?thread=[a-f0-9-]+$/);
+    await page.waitForURL(/\/inbox\?thread=[a-f0-9-]+$/);
     const threadId = new URL(page.url()).searchParams.get("thread")!;
+    await run.registerThread({
+      id: threadId,
+      createdByTest: !baseline.data,
+      ...(baseline.data ? { baselineUpdatedAt: baseline.data.updated_at } : {}),
+    });
     const threadPath = `/inbox?thread=${threadId}`;
     await expect(
       page
         .getByRole("navigation", { name: "Conversations", exact: true })
         .locator(`a[href="${threadPath}"]`),
     ).toBeVisible();
+    await run.registerInboxText(message);
     await page.getByLabel("Your message", { exact: true }).fill(message);
     await page
       .getByRole("button", { name: "Send message", exact: true })
@@ -71,6 +104,7 @@ test("private Inbox allows its two participants and denies other users, includin
     await expect(
       creatorConversation.getByText(message, { exact: true }),
     ).toBeVisible();
+    await run.registerInboxText(reply);
     await creatorPage.getByLabel("Your message", { exact: true }).fill(reply);
     await creatorPage
       .getByRole("button", { name: "Send message", exact: true })
@@ -89,7 +123,6 @@ test("private Inbox allows its two participants and denies other users, includin
       viewerConversation.getByText(reply, { exact: true }),
     ).toBeVisible();
 
-    const viewerDb = await dbFor(page);
     const visibleThread = await viewerDb
       .from("inbox_threads")
       .select("id,participant_low,participant_high")
@@ -118,21 +151,18 @@ test("private Inbox allows its two participants and denies other users, includin
       participantPage.data?.filter((row) => row.content === reply),
     ).toHaveLength(1);
 
-    const recipientProfile = await viewerDb
-      .from("profiles")
-      .select("id")
-      .eq("handle", "rahul")
-      .single();
     expect(
       Boolean(recipientProfile.error),
       "The seeded recipient profile exists",
     ).toBe(false);
+    const forgedText = uniqueText("Rejected sender impersonation", testInfo);
+    await run.registerInboxText(forgedText);
     const forgedParticipantMessage = await viewerDb
       .from("inbox_messages")
       .insert({
         thread_id: threadId,
         sender_id: recipientProfile.data!.id,
-        content: uniqueText("Rejected sender impersonation", testInfo),
+        content: forgedText,
       });
     expect(
       Boolean(forgedParticipantMessage.error),
@@ -206,19 +236,26 @@ test("private Inbox allows its two participants and denies other users, includin
         Boolean(outsiderProfile.error),
         "The seeded nonparticipant profile exists",
       ).toBe(false);
+      const outsiderText = uniqueText(
+        "Rejected nonparticipant message",
+        testInfo,
+      );
+      await run.registerInboxText(outsiderText);
       const outsiderMessage = await outsiderDb.from("inbox_messages").insert({
         thread_id: threadId,
         sender_id: outsiderProfile.data!.id,
-        content: uniqueText("Rejected nonparticipant message", testInfo),
+        content: outsiderText,
       });
       expect(
         Boolean(outsiderMessage.error),
         "A nonparticipant cannot send using their own identity",
       ).toBe(true);
+      const privateText = uniqueText("Rejected private message", testInfo);
+      await run.registerInboxText(privateText);
       const forgedMessage = await outsiderDb.from("inbox_messages").insert({
         thread_id: threadId,
         sender_id: visibleThread.data![0].participant_low,
-        content: uniqueText("Rejected private message", testInfo),
+        content: privateText,
       });
       expect(
         Boolean(forgedMessage.error),
@@ -226,6 +263,6 @@ test("private Inbox allows its two participants and denies other users, includin
       ).toBe(true);
     }
   } finally {
-    await Promise.all(contexts.map((context) => context.close()));
+    await Promise.all(contexts.map((context) => closePerson(context)));
   }
 });
