@@ -4,6 +4,7 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     env:
+      # Credential-free build validation only; deployment uses its own environment.
       NEXT_PUBLIC_DEMO_MODE: "true"
     steps:
       - uses: actions/checkout@v4
@@ -17,5 +18,3 @@ jobs:
       - run: npm test
       - run: npm run seed:check
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e:demo

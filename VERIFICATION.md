@@ -1,5 +1,13 @@
 # Verification record
 
+## CI scope and confirmed connected validation — September 16, 2026
+
+The user's completed manual connected run is confirmed by the saved `test-results/connected/safe-results.json`: **18 passed / 0 failed / 0 skipped** (9 desktop, 9 mobile). The user also confirmed subsequent cleanup verification found **0 E2E resources remaining**. No connected E2E or hosted cleanup was rerun for this CI-only correction. These results supersede the pending rerun and older counts in the historical sections below.
+
+The normal GitHub Actions job no longer installs Chromium or runs the legacy demo Playwright suite. It retains dependency installation, lint, typecheck, all unit/PostgreSQL tests, the seed dry run, and the production build. The existing demo-mode environment enables credential-free build validation only; it does not change deployment configuration. No connected credentials were added, and CI does not run connected E2E against the shared review project. Manual `test:e2e:connected` and `test:e2e:cleanup` commands remain unchanged.
+
+After the CI edit, `npm run lint`, `npm run typecheck`, and `npm test` passed (all **234 tests across 19 files**). The production build passed using the existing local workaround: `CIRCLES_CONSTRAINED_BUILD=true npm run build -- --webpack`. CI retains the ordinary `npm run build` command. These are local checks; the updated GitHub Actions run remains pending a push. No application or test code changed, and no deployment occurred.
+
 ## Desktop invitation-card follow-up — September 16, 2026
 
 Latest completed connected baseline: **desktop 8 passed / 1 failed; mobile 9 passed / 0 failed; total 17 passed / 1 failed / 0 skipped**. The single failure is an unscoped invitation-card locator matching two DOM elements. It is now scoped to the accessible main/article with an exact group heading and strict uniqueness/visibility assertions. Additional connected assertions verify three distinct intended recipients and recipient-only RLS results before acceptance. See [E2E_SELECTOR_AUDIT.md](E2E_SELECTOR_AUDIT.md) for the historical DOM evidence limitation.
